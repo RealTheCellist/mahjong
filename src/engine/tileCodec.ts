@@ -4,15 +4,29 @@ import type { Hand34, Suit } from './types';
 const SUIT_LENGTHS: Record<Suit, number> = { m: 9, p: 9, s: 9, z: 7 };
 const SUIT_ORDER: Suit[] = ['m', 'p', 's', 'z'];
 
-/** index(0~33) -> 표준 패 표기 문자열 (예: 0 -> '1m', 27 -> '1z') */
-export function tileIndexToName(index: number): string {
+/** index(0~33) -> { suit, value(1~9 또는 1~7) } */
+export function tileSuitAndValue(index: number): { suit: Suit; value: number } {
   if (index < 0 || index > 33) {
     throw new RangeError(`invalid tile index: ${index}`);
   }
-  if (index < 9) return `${index + 1}m`;
-  if (index < 18) return `${index - 9 + 1}p`;
-  if (index < 27) return `${index - 18 + 1}s`;
-  return `${index - 27 + 1}z`;
+  if (index < 9) return { suit: 'm', value: index + 1 };
+  if (index < 18) return { suit: 'p', value: index - 9 + 1 };
+  if (index < 27) return { suit: 's', value: index - 18 + 1 };
+  return { suit: 'z', value: index - 27 + 1 };
+}
+
+/** { suit, value } -> index(0~33) */
+export function indexFromSuitValue(suit: Suit, value: number): number {
+  if (value < 1 || value > SUIT_LENGTHS[suit]) {
+    throw new RangeError(`invalid value ${value} for suit ${suit}`);
+  }
+  return SUIT_ORDER.indexOf(suit) * 9 + (value - 1);
+}
+
+/** index(0~33) -> 표준 패 표기 문자열 (예: 0 -> '1m', 27 -> '1z') */
+export function tileIndexToName(index: number): string {
+  const { suit, value } = tileSuitAndValue(index);
+  return `${value}${suit}`;
 }
 
 /** 표준 패 표기 문자열 -> index(0~33) */
