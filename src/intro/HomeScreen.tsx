@@ -3,7 +3,15 @@ import { loadAllChapterProgress } from '../progress/store';
 
 const DEMO_CHAPTERS = ['1-1', '1-2', '2-1'];
 
-export type IntroScreen = 'tile-sort' | 'shuntsu' | 'nanikiru' | 'ending' | 'forward-checker' | 'training';
+export type IntroScreen =
+  | 'tile-sort'
+  | 'shuntsu'
+  | 'nanikiru'
+  | 'ending'
+  | 'forward-checker'
+  | 'training'
+  | 'yaku-dictionary'
+  | 'yaku-table';
 
 interface HomeScreenProps {
   onNavigate: (screen: IntroScreen) => void;
@@ -69,6 +77,12 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
         </button>
         <button type="button" onClick={() => onNavigate('forward-checker')}>
           정방향 체커 (역 판정)
+        </button>
+        <button type="button" onClick={() => onNavigate('yaku-dictionary')}>
+          역 카드 사전
+        </button>
+        <button type="button" onClick={() => onNavigate('yaku-table')}>
+          조건 비교 테이블
         </button>
       </div>
 

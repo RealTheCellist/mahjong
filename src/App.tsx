@@ -4,6 +4,8 @@ import { TileSortMission } from './intro/TileSortMission';
 import { ShuntsuMission } from './intro/ShuntsuMission';
 import { EndingScreen } from './intro/EndingScreen';
 import { ForwardCheckerScreen } from './intro/ForwardCheckerScreen';
+import { YakuDictionaryScreen } from './intro/YakuDictionaryScreen';
+import { YakuTableScreen } from './intro/YakuTableScreen';
 import { NanikiruDemo } from './nanikiru/NanikiruDemo';
 import { TrainingScreen } from './nanikiru/TrainingScreen';
 import './App.css';
@@ -37,6 +39,8 @@ function App() {
       )}
       {screen === 'ending' && <EndingScreen onGoToNanikiru={() => setScreen('nanikiru')} />}
       {screen === 'forward-checker' && <ForwardCheckerScreen />}
+      {screen === 'yaku-dictionary' && <YakuDictionaryScreen />}
+      {screen === 'yaku-table' && <YakuTableScreen />}
       {screen === 'nanikiru' && <NanikiruDemo />}
       {screen === 'training' && <TrainingScreen />}
     </>
