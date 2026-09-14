@@ -1,4 +1,4 @@
-import type { Hand34, RuleName } from '../engine/types';
+import { createEmptyHand34, type Hand34, type RuleName } from '../engine/types';
 import { calculateShanten } from '../engine/shanten';
 import { gradeDiscardChoice } from '../engine/grading';
 import type { Difficulty, GradedAnswer, Problem, ProblemContext } from './types';
@@ -95,4 +95,69 @@ export function generateNanikiruProblem(options: GenerateProblemOptions): Proble
     gradedAnswers,
     source: 'generated',
   };
+}
+
+export interface WinningHand {
+  hand: Hand34;
+  /** 이 손패를 완성시킨 화료패 (역 판정기의 context.winTile로 사용) */
+  winTile: number;
+}
+
+/**
+ * 4멘츠+1페어로 완성된 무작위 손패를 직접 구성한다 (딜 후 필터링이 아니라
+ * 멘츠 단위로 조립하므로 항상 유효한 완성 손패가 나온다).
+ * 정방향 체커(역 판정) 데모용.
+ */
+export function generateRandomWinningHand(rng: () => number = Math.random): WinningHand {
+  const hand = createEmptyHand34();
+  const SUIT_BASE: Record<'m' | 'p' | 's', number> = { m: 0, p: 9, s: 18 };
+  const SUITS: Array<'m' | 'p' | 's'> = ['m', 'p', 's'];
+
+  const canAdd = (indices: number[]) => indices.every((i) => hand[i] < 4);
+  const add = (indices: number[]) => indices.forEach((i) => (hand[i] += 1));
+
+  const addSet = (): number[] => {
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      if (rng() < 0.35) {
+        const tile = Math.floor(rng() * 34);
+        const indices = [tile, tile, tile];
+        if (canAdd(indices)) {
+          add(indices);
+          return indices;
+        }
+      } else {
+        const suit = SUITS[Math.floor(rng() * SUITS.length)];
+        const base = SUIT_BASE[suit];
+        const start = 1 + Math.floor(rng() * 7); // 1~7이어야 start+2가 9 이내
+        const indices = [base + start - 1, base + start, base + start + 1];
+        if (canAdd(indices)) {
+          add(indices);
+          return indices;
+        }
+      }
+    }
+    for (let tile = 0; tile < 34; tile += 1) {
+      if (hand[tile] <= 1) {
+        add([tile, tile, tile]);
+        return [tile, tile, tile];
+      }
+    }
+    throw new Error('완성 손패를 구성하지 못했습니다');
+  };
+
+  let winTile = -1;
+  for (let i = 0; i < 4; i += 1) {
+    const added = addSet();
+    winTile = added[added.length - 1];
+  }
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const tile = Math.floor(rng() * 34);
+    if (hand[tile] <= 2) {
+      add([tile, tile]);
+      winTile = tile;
+      break;
+    }
+  }
+
+  return { hand, winTile };
 }

@@ -3,7 +3,7 @@ import { loadAllChapterProgress } from '../progress/store';
 
 const DEMO_CHAPTERS = ['1-1', '1-2', '2-1'];
 
-export type IntroScreen = 'tile-sort' | 'shuntsu' | 'nanikiru' | 'ending';
+export type IntroScreen = 'tile-sort' | 'shuntsu' | 'nanikiru' | 'ending' | 'forward-checker' | 'training';
 
 interface HomeScreenProps {
   onNavigate: (screen: IntroScreen) => void;
@@ -67,12 +67,20 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
         <button type="button" onClick={() => onNavigate('shuntsu')}>
           슌쯔 만들기
         </button>
+        <button type="button" onClick={() => onNavigate('forward-checker')}>
+          정방향 체커 (역 판정)
+        </button>
       </div>
 
       <h2 style={{ fontSize: 18, marginTop: 24 }}>다른 앱</h2>
-      <button type="button" onClick={() => onNavigate('nanikiru')}>
-        나니키루 손패 뷰어로 이동
-      </button>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button type="button" onClick={() => onNavigate('nanikiru')}>
+          나니키루 손패 뷰어
+        </button>
+        <button type="button" onClick={() => onNavigate('training')}>
+          나니키루 본훈련
+        </button>
+      </div>
     </section>
   );
 }

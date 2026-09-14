@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { dealRandomHand, generateHandWithShanten, generateNanikiruProblem } from '../generator';
+import {
+  dealRandomHand,
+  generateHandWithShanten,
+  generateNanikiruProblem,
+  generateRandomWinningHand,
+} from '../generator';
 import { calculateShanten } from '../../engine/shanten';
+import { checkYaku } from '../../engine/yaku';
 import { hand34Count } from '../../engine/tileCodec';
 
 /** 테스트 재현성을 위한 결정론적 시드 PRNG (mulberry32) */
@@ -72,5 +78,23 @@ describe('generateNanikiruProblem', () => {
     expect(problem.context).toBeDefined();
     expect(problem.context?.turnCount).toBeGreaterThan(0);
     expect(problem.context?.doraIndicators.length).toBeGreaterThan(0);
+  });
+});
+
+describe('generateRandomWinningHand', () => {
+  it('항상 완성(-1샨텐) 손패를 만든다', () => {
+    for (let seed = 0; seed < 20; seed += 1) {
+      const { hand, winTile } = generateRandomWinningHand(seededRng(seed));
+      expect(hand34Count(hand)).toBe(14);
+      expect(calculateShanten(hand)).toBe(-1);
+      expect(hand[winTile]).toBeGreaterThan(0);
+    }
+  });
+
+  it('checkYaku가 에러 없이 판정할 수 있는 손패다', () => {
+    for (let seed = 0; seed < 20; seed += 1) {
+      const { hand, winTile } = generateRandomWinningHand(seededRng(seed));
+      expect(() => checkYaku(hand, { winTile })).not.toThrow();
+    }
   });
 });

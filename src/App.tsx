@@ -3,7 +3,9 @@ import { HomeScreen, type IntroScreen } from './intro/HomeScreen';
 import { TileSortMission } from './intro/TileSortMission';
 import { ShuntsuMission } from './intro/ShuntsuMission';
 import { EndingScreen } from './intro/EndingScreen';
+import { ForwardCheckerScreen } from './intro/ForwardCheckerScreen';
 import { NanikiruDemo } from './nanikiru/NanikiruDemo';
+import { TrainingScreen } from './nanikiru/TrainingScreen';
 import './App.css';
 
 type Screen = 'home' | IntroScreen;
@@ -34,7 +36,9 @@ function App() {
         <ShuntsuMission onComplete={() => setCompleted((c) => ({ ...c, shuntsu: true }))} />
       )}
       {screen === 'ending' && <EndingScreen onGoToNanikiru={() => setScreen('nanikiru')} />}
+      {screen === 'forward-checker' && <ForwardCheckerScreen />}
       {screen === 'nanikiru' && <NanikiruDemo />}
+      {screen === 'training' && <TrainingScreen />}
     </>
   );
 }
