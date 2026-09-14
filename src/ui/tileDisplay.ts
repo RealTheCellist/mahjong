@@ -5,29 +5,9 @@ export interface TileDisplay {
   number: number;
   /** 접근성용 텍스트 라벨 (예: "5통", "발") */
   numberLabel: string;
-  /** 숫자 아래 표시할 종류 라벨 (만/통/삭/자패 명) */
-  suitLabel: string;
-  /** 패 배경색 */
-  color: string;
-  /** 만수 패의 한자 숫자 (一~九) */
-  hanziNumeral?: string;
-  /** 자패의 한자 (東南西北白發中) */
-  honorChar?: string;
 }
 
 const HONOR_LABELS = ['동', '남', '서', '북', '백', '발', '중'];
-const HONOR_CHARS = ['東', '南', '西', '北', '白', '發', '中'];
-/** 자패별 전통 색상 (바람패=검정, 백=파랑, 발=초록, 중=빨강) */
-const HONOR_COLORS = ['#1c1c1c', '#1c1c1c', '#1c1c1c', '#1c1c1c', '#2471a3', '#1e8449', '#c0392b'];
-const MAN_NUMERALS = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
-
-const SUIT_COLORS: Record<Suit, string> = {
-  m: '#c0392b',
-  p: '#2471a3',
-  s: '#1e8449',
-  z: '#5b2c6f',
-};
-
 const SUIT_NAME: Record<Suit, string> = {
   m: '만',
   p: '통',
@@ -60,10 +40,6 @@ export function getTileDisplay(index: number): TileDisplay {
     suit,
     number,
     numberLabel: suit === 'z' ? HONOR_LABELS[number - 1] : `${number}${SUIT_NAME[suit]}`,
-    suitLabel: SUIT_NAME[suit],
-    color: suit === 'z' ? HONOR_COLORS[number - 1] : SUIT_COLORS[suit],
-    hanziNumeral: suit === 'm' ? MAN_NUMERALS[number - 1] : undefined,
-    honorChar: suit === 'z' ? HONOR_CHARS[number - 1] : undefined,
   };
 }
 

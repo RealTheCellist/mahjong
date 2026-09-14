@@ -13,7 +13,8 @@
   "dependencies": {
     "mahjong-tile-efficiency": "^1.0.4",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "riichi-mahjong-tiles": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
