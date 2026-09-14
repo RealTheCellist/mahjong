@@ -10,6 +10,8 @@ export interface YakuCatalogEntry {
   condition: string;
   exampleHand: Hand34;
   exampleWinTile: string;
+  /** 역방향 탐색기에서 조건을 만족시키는 핵심 패로 강조 표시할 패 이름들 */
+  highlightTiles: string[];
 }
 
 function hand(tiles: string[]): Hand34 {
@@ -32,6 +34,7 @@ export const YAKU_CATALOG: YakuCatalogEntry[] = [
       '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s', '8s',
     ]),
     exampleWinTile: '4p',
+    highlightTiles: ['2m','3m','4m','5m','5m','4p','5p','6p','3s','4s','5s','6s','7s','8s'],
   },
   {
     key: 'pinfu',
@@ -43,6 +46,7 @@ export const YAKU_CATALOG: YakuCatalogEntry[] = [
       '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s', '8s',
     ]),
     exampleWinTile: '4p',
+    highlightTiles: ['5m','5m','4p','5p','6p'],
   },
   {
     key: 'yakuhai_dragon',
@@ -54,6 +58,7 @@ export const YAKU_CATALOG: YakuCatalogEntry[] = [
       '7z', '7z', '7z', '2m', '3m', '4m', '5p', '6p', '7p', '7s', '8s', '9s', '9m', '9m',
     ]),
     exampleWinTile: '6p',
+    highlightTiles: ['7z','7z','7z'],
   },
   {
     key: 'iipeiko',
@@ -65,6 +70,7 @@ export const YAKU_CATALOG: YakuCatalogEntry[] = [
       '2m', '2m', '3m', '3m', '4m', '4m', '5p', '6p', '7p', '7s', '8s', '9s', '9p', '9p',
     ]),
     exampleWinTile: '4m',
+    highlightTiles: ['2m','2m','3m','3m','4m','4m'],
   },
   {
     key: 'toitoi',
@@ -76,6 +82,7 @@ export const YAKU_CATALOG: YakuCatalogEntry[] = [
       '1m', '1m', '1m', '2p', '2p', '2p', '3s', '3s', '3s', '4s', '4s', '4s', '5p', '5p',
     ]),
     exampleWinTile: '1m',
+    highlightTiles: ['1m','1m','1m','2p','2p','2p','3s','3s','3s','4s','4s','4s'],
   },
   {
     key: 'honitsu',
@@ -87,6 +94,7 @@ export const YAKU_CATALOG: YakuCatalogEntry[] = [
       '1s', '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s', '1z', '1z', '1z', '5s', '5s',
     ]),
     exampleWinTile: '5s',
+    highlightTiles: ['1s','2s','3s','4s','5s','6s','7s','8s','9s','1z','1z','1z','5s','5s'],
   },
   {
     key: 'chinitsu',
@@ -98,6 +106,7 @@ export const YAKU_CATALOG: YakuCatalogEntry[] = [
       '1s', '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s', '2s', '3s', '4s', '5s', '5s',
     ]),
     exampleWinTile: '5s',
+    highlightTiles: ['1s','2s','3s','4s','5s','6s','7s','8s','9s','2s','3s','4s','5s','5s'],
   },
   {
     key: 'menzen_tsumo',
@@ -109,6 +118,7 @@ export const YAKU_CATALOG: YakuCatalogEntry[] = [
       '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s', '8s',
     ]),
     exampleWinTile: '4p',
+    highlightTiles: ['4p'],
   },
   {
     key: 'riichi',
@@ -120,5 +130,6 @@ export const YAKU_CATALOG: YakuCatalogEntry[] = [
       '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s', '8s',
     ]),
     exampleWinTile: '4p',
+    highlightTiles: ['4p'],
   },
 ];

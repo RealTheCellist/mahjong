@@ -6,8 +6,13 @@ import { EndingScreen } from './intro/EndingScreen';
 import { ForwardCheckerScreen } from './intro/ForwardCheckerScreen';
 import { YakuDictionaryScreen } from './intro/YakuDictionaryScreen';
 import { YakuTableScreen } from './intro/YakuTableScreen';
+import { ReverseYakuExplorerScreen } from './intro/ReverseYakuExplorerScreen';
 import { NanikiruDemo } from './nanikiru/NanikiruDemo';
 import { TrainingScreen } from './nanikiru/TrainingScreen';
+import { TheorySlidesScreen } from './nanikiru/TheorySlidesScreen';
+import { UnitTestScreen } from './nanikiru/UnitTestScreen';
+import { WrongAnswerScreen } from './nanikiru/WrongAnswerScreen';
+import { ComprehensiveScreen } from './nanikiru/ComprehensiveScreen';
 import './App.css';
 
 type Screen = 'home' | IntroScreen;
@@ -41,8 +46,13 @@ function App() {
       {screen === 'forward-checker' && <ForwardCheckerScreen />}
       {screen === 'yaku-dictionary' && <YakuDictionaryScreen />}
       {screen === 'yaku-table' && <YakuTableScreen />}
+      {screen === 'reverse-explorer' && <ReverseYakuExplorerScreen />}
       {screen === 'nanikiru' && <NanikiruDemo />}
+      {screen === 'theory' && <TheorySlidesScreen />}
       {screen === 'training' && <TrainingScreen />}
+      {screen === 'unit-test' && <UnitTestScreen />}
+      {screen === 'wrong-answers' && <WrongAnswerScreen />}
+      {screen === 'comprehensive' && <ComprehensiveScreen />}
     </>
   );
 }

@@ -11,7 +11,12 @@ export type IntroScreen =
   | 'forward-checker'
   | 'training'
   | 'yaku-dictionary'
-  | 'yaku-table';
+  | 'yaku-table'
+  | 'reverse-explorer'
+  | 'theory'
+  | 'unit-test'
+  | 'wrong-answers'
+  | 'comprehensive';
 
 interface HomeScreenProps {
   onNavigate: (screen: IntroScreen) => void;
@@ -84,6 +89,9 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
         <button type="button" onClick={() => onNavigate('yaku-table')}>
           조건 비교 테이블
         </button>
+        <button type="button" onClick={() => onNavigate('reverse-explorer')}>
+          역방향 탐색기
+        </button>
       </div>
 
       <h2 style={{ fontSize: 18, marginTop: 24 }}>다른 앱</h2>
@@ -91,8 +99,20 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
         <button type="button" onClick={() => onNavigate('nanikiru')}>
           나니키루 손패 뷰어
         </button>
+        <button type="button" onClick={() => onNavigate('theory')}>
+          이론학습
+        </button>
         <button type="button" onClick={() => onNavigate('training')}>
           나니키루 본훈련
+        </button>
+        <button type="button" onClick={() => onNavigate('unit-test')}>
+          단원평가
+        </button>
+        <button type="button" onClick={() => onNavigate('wrong-answers')}>
+          오답노트
+        </button>
+        <button type="button" onClick={() => onNavigate('comprehensive')}>
+          종합응용
         </button>
       </div>
     </section>

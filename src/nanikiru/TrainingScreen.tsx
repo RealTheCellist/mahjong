@@ -9,6 +9,7 @@ import {
   recordGeneratedAttempt,
 } from '../progress/store';
 import { FIXED_PROBLEMS } from './fixedProblems';
+import { addWrongAnswer } from './wrongAnswerQueue';
 
 const CHAPTER_ID = '2-1';
 
@@ -38,6 +39,14 @@ export function TrainingScreen() {
       setProblem(FIXED_PROBLEMS[fixedIndex % FIXED_PROBLEMS.length]);
     } else {
       setProblem(pickGenerated());
+    }
+  };
+
+  const handleSelectTile = (tile: number) => {
+    setSelectedTile(tile);
+    const answer = problem.gradedAnswers?.find((a) => a.tile === tile);
+    if (answer && answer.grade !== 'S') {
+      addWrongAnswer({ problem, chosenTile: tile, grade: answer.grade, reason: answer.reason });
     }
   };
 
@@ -75,7 +84,7 @@ export function TrainingScreen() {
 
       <p>버릴 패를 탭해서 등급(S/A/B)과 이유를 확인해보세요.</p>
 
-      <HandView key={problem.id} hand={problem.hand} interactive onSelectDiscard={setSelectedTile} />
+      <HandView key={problem.id} hand={problem.hand} interactive onSelectDiscard={handleSelectTile} />
 
       <div style={{ marginTop: 16, minHeight: 60 }}>
         {selectedAnswer && (
