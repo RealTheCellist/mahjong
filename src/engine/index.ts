@@ -16,3 +16,5 @@ export type { BlockType, Block, BlockDecomposition } from './blocks';
 export { analyzeBlocks } from './blocks';
 export type { DiscardGrade, DiscardGradeResult, GradeDiscardContext } from './grading';
 export { gradeDiscardChoice } from './grading';
+export type { YakuContext, YakuResult } from './yaku';
+export { checkYaku } from './yaku';
