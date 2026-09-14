@@ -1,6 +1,7 @@
 import type { Hand34, RuleName } from './types';
 import { calculateUkeireDetailed } from './ukeire';
 import { tileIndexToName } from './tileCodec';
+import { calculateSafety, type SafetyContext } from './safety';
 
 export type DiscardGrade = 'S' | 'A' | 'B';
 
@@ -8,23 +9,29 @@ export interface DiscardGradeResult {
   grade: DiscardGrade;
   reason: string;
   ukeire: number;
+  safetyScore?: number;
 }
 
 export interface GradeDiscardContext {
-  /** true면 방어(안전패 우선) 판단이 필요한 상황 — 6단계 안전도 계산기 연동 시 사용 */
+  /** true면 방어(안전패 우선) 판단이 필요한 상황 */
   requiresDefense?: boolean;
+  /** requiresDefense가 true일 때 위험 패를 가려내는 데 사용하는 안전도 컨텍스트 */
+  safety?: SafetyContext;
 }
 
 /** S등급 컷 아래로 A등급을 매기는 상대 기준 (최댓값 대비 비율) */
 const A_GRADE_RATIO = 0.6;
+/** 이 점수 미만이면 방어 국면에서 위험패로 간주해 강등한다 */
+const DANGER_THRESHOLD = 50;
 
 /**
  * 손패의 각 버림패 후보에 S/A/B 등급과 이유를 매긴다.
- * 우케이레 계산기를 기반으로 하며, 샨텐이 후퇴하는 버림은 항상 B(악수)로 분류한다.
+ * 우케이레 계산기를 기본으로 하고, 방어가 필요한 상황(requiresDefense)이면
+ * 안전도 계산기 결과를 함께 반영해 위험패를 강등시킨다.
  */
 export function gradeDiscardChoice(
   hand: Hand34,
-  _context: GradeDiscardContext = {},
+  context: GradeDiscardContext = {},
   ruleName: RuleName = 'Riichi',
 ): Map<number, DiscardGradeResult> {
   const { normal, receding } = calculateUkeireDetailed(hand, ruleName);
@@ -60,6 +67,22 @@ export function gradeDiscardChoice(
       ukeire,
       reason: `${tileIndexToName(discardIndex)}을(를) 버리면 샨텐이 후퇴하는 악수입니다.`,
     });
+  }
+
+  if (context.requiresDefense && context.safety) {
+    for (const [discardIndex, entry] of result) {
+      const safety = calculateSafety(discardIndex, context.safety);
+      if (safety.score < DANGER_THRESHOLD && entry.grade !== 'B') {
+        result.set(discardIndex, {
+          ...entry,
+          grade: 'B',
+          safetyScore: safety.score,
+          reason: `효율은 좋지만 안전도(${safety.score}점)가 낮아 방어 국면에서는 위험한 버림입니다.`,
+        });
+      } else {
+        result.set(discardIndex, { ...entry, safetyScore: safety.score });
+      }
+    }
   }
 
   return result;

@@ -18,3 +18,5 @@ export type { DiscardGrade, DiscardGradeResult, GradeDiscardContext } from './gr
 export { gradeDiscardChoice } from './grading';
 export type { YakuContext, YakuResult } from './yaku';
 export { checkYaku } from './yaku';
+export type { SujiType, SafetyContext, SafetyResult } from './safety';
+export { calculateSafety } from './safety';

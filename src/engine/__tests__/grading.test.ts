@@ -36,4 +36,25 @@ describe('gradeDiscardChoice', () => {
       expect(result.ukeire).toBeGreaterThanOrEqual(0);
     }
   });
+
+  it('방어 국면(requiresDefense)에서는 효율이 좋아도 위험패면 B로 강등된다', () => {
+    // 7p는 상대 버림패에 없고 스지도 없어 위험 - 효율상 S였지만 방어 시 B로 강등되어야 한다
+    const defenseGrades = gradeDiscardChoice(hand, {
+      requiresDefense: true,
+      safety: { opponentDiscards: [] },
+    });
+    const result = defenseGrades.get(idx('7p'));
+    expect(result?.grade).toBe('B');
+    expect(result?.reason).toContain('안전도');
+    expect(result?.safetyScore).toBeLessThan(50);
+  });
+
+  it('방어 국면에서도 현물(안전패)은 등급이 유지된다', () => {
+    const defenseGrades = gradeDiscardChoice(hand, {
+      requiresDefense: true,
+      safety: { opponentDiscards: [idx('7p'), idx('1s')] },
+    });
+    expect(defenseGrades.get(idx('7p'))?.grade).toBe('S');
+    expect(defenseGrades.get(idx('7p'))?.safetyScore).toBe(100);
+  });
 });
