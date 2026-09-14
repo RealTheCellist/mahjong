@@ -12,9 +12,9 @@ interface TileProps {
 const HEIGHT_RATIO = 1.4;
 /** 실물 패의 두께감을 표현하는 입체 깊이 (타일 너비 대비 비율) */
 const DEPTH_RATIO = 0.11;
-/** 관동체(関東判) 스타일: 붓글씨보다 각지고 정형화된 인쇄 고딕 계열 */
+/** 관동체(関東判) 스타일: 붓글씨체가 아닌 정자체(正字體, 해서/명조 계열의 반듯한 표준 글꼴) */
 const HANZI_FONT =
-  "'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', 'Hiragino Sans', 'Noto Sans CJK TC', sans-serif";
+  "'Noto Serif TC', 'Songti TC', 'PMingLiU', 'Microsoft JhengHei', 'Noto Serif CJK TC', serif";
 
 interface PrintedTextProps {
   x: number;
@@ -32,7 +32,7 @@ function PrintedText({ x, y, fontSize, fill, children }: PrintedTextProps) {
     textAnchor: 'middle' as const,
     fontSize,
     fontFamily: HANZI_FONT,
-    fontWeight: 900,
+    fontWeight: 700,
   };
   return (
     <>
