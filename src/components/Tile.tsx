@@ -10,20 +10,25 @@ interface TileProps {
 }
 
 const HEIGHT_RATIO = 1.4;
+/** 실물 패의 두께감을 표현하는 입체 깊이 (타일 너비 대비 비율) */
+const DEPTH_RATIO = 0.11;
 
 export function Tile({ index, selected = false, onClick, width = 44 }: TileProps) {
   const display = getTileDisplay(index);
   const { suit, number, numberLabel, suitLabel, color, hanziNumeral, honorChar } = display;
   const height = width * HEIGHT_RATIO;
+  const depth = width * DEPTH_RATIO;
+  const totalWidth = width + depth;
+  const totalHeight = height + depth;
   const gradientId = useId();
 
   const ariaLabel = suit === 'z' ? `${numberLabel}(자패)` : numberLabel;
 
   return (
     <svg
-      viewBox={`0 0 ${width} ${height}`}
-      width={width}
-      height={height}
+      viewBox={`0 0 ${totalWidth} ${totalHeight}`}
+      width={totalWidth}
+      height={totalHeight}
       role={onClick ? 'button' : 'img'}
       tabIndex={onClick ? 0 : undefined}
       aria-label={ariaLabel}
@@ -40,8 +45,8 @@ export function Tile({ index, selected = false, onClick, width = 44 }: TileProps
         transform: selected ? 'translateY(-8px)' : undefined,
         transition: 'transform 120ms ease',
         filter: selected
-          ? 'drop-shadow(0 4px 4px rgba(0,0,0,0.35))'
-          : 'drop-shadow(0 1px 1px rgba(0,0,0,0.2))',
+          ? 'drop-shadow(0 6px 4px rgba(0,0,0,0.35))'
+          : 'drop-shadow(0 2px 2px rgba(0,0,0,0.25))',
       }}
     >
       <defs>
@@ -55,7 +60,30 @@ export function Tile({ index, selected = false, onClick, width = 44 }: TileProps
           <stop offset="18%" stopColor="currentColor" stopOpacity={0.85} />
           <stop offset="100%" stopColor="currentColor" />
         </radialGradient>
+        <linearGradient id={`${gradientId}-side`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#d9cca4" />
+          <stop offset="100%" stopColor="#b8a76f" />
+        </linearGradient>
+        <linearGradient id={`${gradientId}-bottom`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#c9b985" />
+          <stop offset="100%" stopColor="#a4925c" />
+        </linearGradient>
       </defs>
+
+      {/* 오른쪽 옆면(두께) — 실물 패의 입체감 */}
+      <polygon
+        points={`${width},2 ${totalWidth},${depth + 2} ${totalWidth},${totalHeight - 2} ${width},${height - 2}`}
+        fill={`url(#${gradientId}-side)`}
+        stroke="#8f7f4d"
+        strokeWidth={0.6}
+      />
+      {/* 아랫면(두께) */}
+      <polygon
+        points={`2,${height} ${depth + 2},${totalHeight} ${totalWidth - 2},${totalHeight} ${width - 2},${height}`}
+        fill={`url(#${gradientId}-bottom)`}
+        stroke="#8f7f4d"
+        strokeWidth={0.6}
+      />
 
       <rect
         x={1}
