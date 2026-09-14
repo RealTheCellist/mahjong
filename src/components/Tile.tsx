@@ -12,6 +12,42 @@ interface TileProps {
 const HEIGHT_RATIO = 1.4;
 /** 실물 패의 두께감을 표현하는 입체 깊이 (타일 너비 대비 비율) */
 const DEPTH_RATIO = 0.11;
+const HANZI_FONT =
+  "'Noto Serif TC', 'Songti TC', 'PingFang TC', 'Microsoft JhengHei', 'Noto Serif CJK TC', serif";
+
+interface EngravedTextProps {
+  x: number;
+  y: number;
+  fontSize: number;
+  fill: string;
+  children: string;
+}
+
+/** 잉크로 새긴 듯한 음각 느낌을 주기 위해 그림자/하이라이트를 겹쳐 그린다 */
+function EngravedText({ x, y, fontSize, fill, children }: EngravedTextProps) {
+  const offset = fontSize * 0.02;
+  const shared = {
+    x,
+    y,
+    textAnchor: 'middle' as const,
+    fontSize,
+    fontFamily: HANZI_FONT,
+    fontWeight: 700,
+  };
+  return (
+    <>
+      <text {...shared} x={x - offset} y={y - offset} fill="#ffffff" opacity={0.55}>
+        {children}
+      </text>
+      <text {...shared} x={x + offset} y={y + offset} fill="#000000" opacity={0.3}>
+        {children}
+      </text>
+      <text {...shared} fill={fill}>
+        {children}
+      </text>
+    </>
+  );
+}
 
 export function Tile({ index, selected = false, onClick, width = 44 }: TileProps) {
   const display = getTileDisplay(index);
@@ -51,14 +87,19 @@ export function Tile({ index, selected = false, onClick, width = 44 }: TileProps
     >
       <defs>
         <linearGradient id={`${gradientId}-bg`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="55%" stopColor="#faf6ea" />
-          <stop offset="100%" stopColor="#efe6cf" />
+          <stop offset="0%" stopColor="#fffdf8" />
+          <stop offset="60%" stopColor="#f8f2e2" />
+          <stop offset="100%" stopColor="#ece1c4" />
         </linearGradient>
-        <radialGradient id={`${gradientId}-pin`} cx="35%" cy="30%" r="75%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity={0.85} />
-          <stop offset="18%" stopColor="currentColor" stopOpacity={0.85} />
+        <radialGradient id={`${gradientId}-pinOuter`} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity={0.9} />
+          <stop offset="30%" stopColor="currentColor" stopOpacity={0.75} />
           <stop offset="100%" stopColor="currentColor" />
+        </radialGradient>
+        <radialGradient id={`${gradientId}-bamboo`} cx="30%" cy="20%" r="90%">
+          <stop offset="0%" stopColor="#6fce8f" />
+          <stop offset="55%" stopColor="#2f9e5c" />
+          <stop offset="100%" stopColor="#1c6b3f" />
         </radialGradient>
         <linearGradient id={`${gradientId}-side`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#d9cca4" />
@@ -90,103 +131,79 @@ export function Tile({ index, selected = false, onClick, width = 44 }: TileProps
         y={1}
         width={width - 2}
         height={height - 2}
-        rx={width * 0.14}
+        rx={width * 0.1}
         fill={`url(#${gradientId}-bg)`}
-        stroke={selected ? '#f39c12' : '#b8ac8a'}
+        stroke={selected ? '#f39c12' : '#a99a70'}
         strokeWidth={selected ? 3 : 1.2}
       />
       <rect
-        x={width * 0.08}
-        y={height * 0.05}
-        width={width * 0.84}
-        height={height * 0.03}
-        rx={width * 0.02}
-        fill="#ffffff"
-        opacity={0.6}
+        x={2.5}
+        y={2.5}
+        width={width - 5}
+        height={height - 5}
+        rx={width * 0.08}
+        fill="none"
+        stroke="#ffffff"
+        strokeOpacity={0.5}
+        strokeWidth={0.8}
       />
 
       {suit === 'm' && (
         <>
-          <text
-            x={width / 2}
-            y={height * 0.42}
-            textAnchor="middle"
-            fontSize={width * 0.46}
-            fontWeight={700}
-            fill="#c0392b"
-          >
-            {hanziNumeral}
-          </text>
-          <text
-            x={width / 2}
-            y={height * 0.78}
-            textAnchor="middle"
-            fontSize={width * 0.34}
-            fontWeight={700}
-            fill="#1c1c1c"
-          >
+          <EngravedText x={width / 2} y={height * 0.42} fontSize={width * 0.46} fill="#a8281f">
+            {hanziNumeral ?? ''}
+          </EngravedText>
+          <EngravedText x={width / 2} y={height * 0.78} fontSize={width * 0.34} fill="#161616">
             萬
-          </text>
+          </EngravedText>
         </>
       )}
 
       {suit === 'z' && (
-        <text
-          x={width / 2}
-          y={height * 0.6}
-          textAnchor="middle"
-          fontSize={width * 0.52}
-          fontWeight={700}
-          fill={color}
-        >
-          {honorChar}
-        </text>
+        <EngravedText x={width / 2} y={height * 0.62} fontSize={width * 0.54} fill={color}>
+          {honorChar ?? ''}
+        </EngravedText>
       )}
 
       {suit === 'p' &&
         PIP_LAYOUTS[number].map((pip, i) => {
-          const r = width * 0.13;
+          const r = width * 0.135;
           const cx = width * 0.08 + pip.x * width * 0.84;
           const cy = height * 0.08 + pip.y * height * 0.84;
           const pipColor = PIN_PIP_COLORS[i % PIN_PIP_COLORS.length];
           return (
-            <circle
-              key={i}
-              cx={cx}
-              cy={cy}
-              r={r}
-              fill={`url(#${gradientId}-pin)`}
-              stroke={pipColor}
-              color={pipColor}
-              strokeWidth={width * 0.02}
-            />
+            <g key={i} color={pipColor}>
+              <circle cx={cx} cy={cy} r={r} fill={`url(#${gradientId}-pinOuter)`} stroke={pipColor} strokeWidth={width * 0.018} />
+              <circle cx={cx} cy={cy} r={r * 0.62} fill="none" stroke="#ffffff" strokeOpacity={0.85} strokeWidth={width * 0.012} />
+              <circle cx={cx} cy={cy} r={r * 0.28} fill={pipColor} opacity={0.9} />
+            </g>
           );
         })}
 
       {suit === 's' &&
         PIP_LAYOUTS[number].map((pip, i) => {
-          const stickW = width * 0.14;
-          const stickH = height * 0.22;
+          const stickW = width * 0.15;
+          const stickH = height * 0.23;
           const cx = width * 0.08 + pip.x * width * 0.84;
           const cy = height * 0.08 + pip.y * height * 0.84;
+          const knobR = stickW * 0.5;
           return (
             <g key={i}>
               <rect
-                x={cx - stickW / 2}
-                y={cy - stickH / 2}
-                width={stickW}
-                height={stickH}
-                rx={stickW * 0.4}
-                fill="#2f9e5c"
-                stroke="#1e7a44"
-                strokeWidth={width * 0.015}
+                x={cx - stickW * 0.18}
+                y={cy - stickH / 2 + knobR * 0.6}
+                width={stickW * 0.36}
+                height={stickH - knobR * 1.2}
+                fill="#1c6b3f"
               />
-              <rect x={cx - stickW / 2} y={cy - stickW * 0.15} width={stickW} height={stickW * 0.3} fill="#1e7a44" />
+              <circle cx={cx} cy={cy - stickH / 2 + knobR * 0.6} r={knobR} fill={`url(#${gradientId}-bamboo)`} stroke="#164f2e" strokeWidth={width * 0.012} />
+              <circle cx={cx} cy={cy + stickH / 2 - knobR * 0.6} r={knobR} fill={`url(#${gradientId}-bamboo)`} stroke="#164f2e" strokeWidth={width * 0.012} />
+              <rect x={cx - stickW * 0.3} y={cy - width * 0.012} width={stickW * 0.6} height={width * 0.024} fill="#164f2e" opacity={0.7} />
             </g>
           );
         })}
 
-      <text x={width * 0.1} y={height * 0.16} fontSize={width * 0.16} fill="#8a8168">
+      <text x={width * 0.1} y={height * 0.16} fontSize={width * 0.15} fill="#9a9070">
         {suit === 'z' ? '' : `${number}${suitLabel}`}
       </text>
     </svg>
