@@ -4,7 +4,12 @@ import { checkTileSortAnswer, generateTileSortPool, pickRandomSuit } from './mis
 
 const SUIT_LABEL: Record<string, string> = { m: '만수', p: '통수', s: '삭수', z: '자패' };
 
-export function TileSortMission() {
+interface TileSortMissionProps {
+  /** 이 미션을 처음으로 클리어한 순간 한 번 호출된다 */
+  onComplete?: () => void;
+}
+
+export function TileSortMission({ onComplete }: TileSortMissionProps = {}) {
   const [round, setRound] = useState(0);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [result, setResult] = useState<'idle' | 'correct' | 'wrong'>('idle');
@@ -23,7 +28,9 @@ export function TileSortMission() {
   };
 
   const check = () => {
-    setResult(checkTileSortAnswer(pool, targetSuit, selected) ? 'correct' : 'wrong');
+    const isCorrect = checkTileSortAnswer(pool, targetSuit, selected);
+    setResult(isCorrect ? 'correct' : 'wrong');
+    if (isCorrect) onComplete?.();
   };
 
   const nextRound = () => {

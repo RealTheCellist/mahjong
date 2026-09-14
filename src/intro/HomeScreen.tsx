@@ -3,16 +3,36 @@ import { loadAllChapterProgress } from '../progress/store';
 
 const DEMO_CHAPTERS = ['1-1', '1-2', '2-1'];
 
+export type IntroScreen = 'tile-sort' | 'shuntsu' | 'nanikiru' | 'ending';
+
 interface HomeScreenProps {
-  onNavigate: (screen: 'tile-sort' | 'shuntsu' | 'nanikiru') => void;
+  onNavigate: (screen: IntroScreen) => void;
+  allMissionsCompleted: boolean;
 }
 
-export function HomeScreen({ onNavigate }: HomeScreenProps) {
+export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps) {
   const progress = loadAllChapterProgress(DEMO_CHAPTERS);
 
   return (
     <section style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
       <h1>마작 입문 — 홈</h1>
+
+      {allMissionsCompleted && (
+        <div
+          style={{
+            background: 'var(--code-bg, #f4f3ec)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 16,
+          }}
+        >
+          모든 미션을 완료했습니다!{' '}
+          <button type="button" onClick={() => onNavigate('ending')}>
+            엔딩 보러 가기
+          </button>
+        </div>
+      )}
 
       <h2 style={{ fontSize: 18 }}>챕터 진행률</h2>
       <table style={{ borderCollapse: 'collapse', width: '100%', marginBottom: 24 }}>

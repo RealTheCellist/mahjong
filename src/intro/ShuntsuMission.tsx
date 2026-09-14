@@ -1,8 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Tile } from '../components/Tile';
 import { generateShuntsuPool, isValidRun } from './missionLogic';
 
-export function ShuntsuMission() {
+interface ShuntsuMissionProps {
+  /** 이 미션을 처음으로 클리어한 순간 한 번 호출된다 */
+  onComplete?: () => void;
+}
+
+export function ShuntsuMission({ onComplete }: ShuntsuMissionProps = {}) {
   const [round, setRound] = useState(0);
   const pool = useMemo(() => generateShuntsuPool(), [round]);
   const [used, setUsed] = useState<Set<number>>(new Set());
@@ -11,6 +16,10 @@ export function ShuntsuMission() {
 
   const completedRuns = used.size / 3;
   const isCleared = used.size === pool.length;
+
+  useEffect(() => {
+    if (isCleared) onComplete?.();
+  }, [isCleared, onComplete]);
 
   const toggle = (position: number) => {
     if (used.has(position) || isCleared) return;

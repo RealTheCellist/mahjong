@@ -1,14 +1,18 @@
 import { useState } from 'react';
-import { HomeScreen } from './intro/HomeScreen';
+import { HomeScreen, type IntroScreen } from './intro/HomeScreen';
 import { TileSortMission } from './intro/TileSortMission';
 import { ShuntsuMission } from './intro/ShuntsuMission';
+import { EndingScreen } from './intro/EndingScreen';
 import { NanikiruDemo } from './nanikiru/NanikiruDemo';
 import './App.css';
 
-type Screen = 'home' | 'tile-sort' | 'shuntsu' | 'nanikiru';
+type Screen = 'home' | IntroScreen;
 
 function App() {
   const [screen, setScreen] = useState<Screen>('home');
+  const [completed, setCompleted] = useState({ tileSort: false, shuntsu: false });
+
+  const allMissionsCompleted = completed.tileSort && completed.shuntsu;
 
   return (
     <>
@@ -20,9 +24,16 @@ function App() {
         </div>
       )}
 
-      {screen === 'home' && <HomeScreen onNavigate={setScreen} />}
-      {screen === 'tile-sort' && <TileSortMission />}
-      {screen === 'shuntsu' && <ShuntsuMission />}
+      {screen === 'home' && (
+        <HomeScreen onNavigate={setScreen} allMissionsCompleted={allMissionsCompleted} />
+      )}
+      {screen === 'tile-sort' && (
+        <TileSortMission onComplete={() => setCompleted((c) => ({ ...c, tileSort: true }))} />
+      )}
+      {screen === 'shuntsu' && (
+        <ShuntsuMission onComplete={() => setCompleted((c) => ({ ...c, shuntsu: true }))} />
+      )}
+      {screen === 'ending' && <EndingScreen onGoToNanikiru={() => setScreen('nanikiru')} />}
       {screen === 'nanikiru' && <NanikiruDemo />}
     </>
   );
