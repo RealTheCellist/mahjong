@@ -1,122 +1,48 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useMemo, useState } from 'react';
+import { HandView } from './components/HandView';
+import { calculateShanten } from './engine/shanten';
+import { calculateUkeire } from './engine/ukeire';
+import { tileIndexToName, tileNamesToHand34 } from './engine/tileCodec';
+import type { Hand34 } from './engine/types';
+import './App.css';
+
+// 1샨텐 예시 손패 (14장)
+const SAMPLE_HAND: Hand34 = tileNamesToHand34([
+  '1m', '1m', '1m', '6p', '7p', '7p', '1s', '1s', '2s',
+  '5s', '5s', '1z', '1z', '1z',
+]);
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [discardIndex, setDiscardIndex] = useState<number | null>(null);
+
+  const ukeireMap = useMemo(() => calculateUkeire(SAMPLE_HAND), []);
+
+  const afterDiscardShanten = useMemo(() => {
+    if (discardIndex === null) return null;
+    const hand = [...SAMPLE_HAND];
+    hand[discardIndex] -= 1;
+    return calculateShanten(hand);
+  }, [discardIndex]);
+
+  const ukeireForDiscard = discardIndex === null ? null : ukeireMap.get(discardIndex) ?? 0;
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+      <h1>손패 뷰어</h1>
+      <p>패를 탭해서 버릴 패를 선택해보세요.</p>
+
+      <HandView hand={SAMPLE_HAND} interactive onSelectDiscard={setDiscardIndex} />
+
+      <div style={{ marginTop: 24, fontSize: 15, lineHeight: 1.8 }}>
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
+          선택한 버림패:{' '}
+          {discardIndex === null ? '없음' : tileIndexToName(discardIndex)}
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <div>버림 후 샨텐 수: {afterDiscardShanten === null ? '-' : afterDiscardShanten}</div>
+        <div>해당 버림의 유효패 매수: {ukeireForDiscard === null ? '-' : ukeireForDiscard}</div>
+      </div>
+    </section>
+  );
 }
 
-export default App
+export default App;
