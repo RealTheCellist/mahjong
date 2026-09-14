@@ -10,13 +10,28 @@ interface RawUkeireResult {
   recedingDiscard?: DiscardAcceptance;
 }
 
+export interface UkeireDetail {
+  /** 샨텐을 유지하는 버림패 index -> 유효패 매수 합계 */
+  normal: Map<number, number>;
+  /** 샨텐이 후퇴하는(악수) 버림패 index -> 유효패 매수 합계 */
+  receding: Map<number, number>;
+}
+
+function sumAcceptance(group: DiscardAcceptance | undefined): Map<number, number> {
+  const map = new Map<number, number>();
+  if (!group) return map;
+  for (const [discardName, acceptance] of Object.entries(group)) {
+    const totalUkeire = Object.values(acceptance).reduce((sum, n) => sum + n, 0);
+    map.set(tileNameToIndex(discardName), totalUkeire);
+  }
+  return map;
+}
+
 /**
- * 14장(3n+2) 손패를 기준으로, 각 버림패 후보를 버렸을 때
- * 남는 유효패(우케이레) 종류 수 합계를 계산한다.
- *
- * @returns 버림패 index -> 유효패 매수 합계
+ * 14장(3n+2) 손패를 기준으로, 각 버림패 후보를 버렸을 때 남는 유효패(우케이레)를
+ * 샨텐 유지(normal) / 샨텐 후퇴(receding)로 나누어 계산한다.
  */
-export function calculateUkeire(hand: Hand34, ruleName: RuleName = 'Riichi'): Map<number, number> {
+export function calculateUkeireDetailed(hand: Hand34, ruleName: RuleName = 'Riichi'): UkeireDetail {
   const total = hand34Count(hand);
   if (total % 3 !== 2) {
     throw new Error(
@@ -28,18 +43,19 @@ export function calculateUkeire(hand: Hand34, ruleName: RuleName = 'Riichi'): Ma
   const libHand = hand34ToLibHand(hand);
   const result = ruleSet.calUkeire(libHand) as RawUkeireResult;
 
-  const ukeireByDiscard = new Map<number, number>();
-
-  const addGroup = (group: DiscardAcceptance | undefined) => {
-    if (!group) return;
-    for (const [discardName, acceptance] of Object.entries(group)) {
-      const totalUkeire = Object.values(acceptance).reduce((sum, n) => sum + n, 0);
-      ukeireByDiscard.set(tileNameToIndex(discardName), totalUkeire);
-    }
+  return {
+    normal: sumAcceptance(result.normalDiscard),
+    receding: sumAcceptance(result.recedingDiscard),
   };
+}
 
-  addGroup(result.normalDiscard);
-  addGroup(result.recedingDiscard);
-
-  return ukeireByDiscard;
+/**
+ * 14장(3n+2) 손패를 기준으로, 각 버림패 후보를 버렸을 때
+ * 남는 유효패(우케이레) 종류 수 합계를 계산한다 (샨텐 유지/후퇴 구분 없이 합산).
+ *
+ * @returns 버림패 index -> 유효패 매수 합계
+ */
+export function calculateUkeire(hand: Hand34, ruleName: RuleName = 'Riichi'): Map<number, number> {
+  const { normal, receding } = calculateUkeireDetailed(hand, ruleName);
+  return new Map([...normal, ...receding]);
 }

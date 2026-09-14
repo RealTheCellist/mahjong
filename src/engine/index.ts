@@ -8,8 +8,11 @@ export {
   hand34Count,
 } from './tileCodec';
 export { calculateShanten } from './shanten';
-export { calculateUkeire } from './ukeire';
+export type { UkeireDetail } from './ukeire';
+export { calculateUkeire, calculateUkeireDetailed } from './ukeire';
 export type { TaatsuType, TaatsuClassification } from './taatsu';
 export { classifyTaatsu } from './taatsu';
 export type { BlockType, Block, BlockDecomposition } from './blocks';
 export { analyzeBlocks } from './blocks';
+export type { DiscardGrade, DiscardGradeResult, GradeDiscardContext } from './grading';
+export { gradeDiscardChoice } from './grading';
