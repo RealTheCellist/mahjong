@@ -18,15 +18,22 @@ export interface YakuResult {
   name: string;
 }
 
-interface HandSet {
+export interface HandSet {
   type: 'shuntsu' | 'kotsu';
   tiles: number[];
   isOpen: boolean;
 }
 
-interface CompleteDecomposition {
+export interface CompleteDecomposition {
   sets: HandSet[];
   pairTile: number;
+}
+
+export interface WinningHand {
+  sets: HandSet[];
+  pairTile: number;
+  yaku: YakuResult[];
+  isMenzen: boolean;
 }
 
 const HONOR_SUIT: Suit = 'z';
@@ -210,24 +217,52 @@ function evaluateDecomposition(decomp: CompleteDecomposition, context: YakuConte
   return results;
 }
 
+function dedupeYaku(list: YakuResult[]): YakuResult[] {
+  const unique = new Map<string, YakuResult>();
+  for (const y of list) unique.set(y.key, y);
+  return [...unique.values()];
+}
+
 /**
- * 완성된 손패의 성립 역을 판정한다.
- * @param hand 멘젠 부분 손패 (이미 확정된 멘츠는 context.melds로 전달)
+ * 완성된 손패를 4멘츠+1페어로 분해하고, 가장 역이 많이 나오는(사이타쿠) 해석을
+ * 선택해 반환한다. 역 판정기와 점수 계산기가 공통으로 사용하는 내부 로직.
  */
-export function checkYaku(hand: Hand34, context: YakuContext): YakuResult[] {
+export function getWinningHand(hand: Hand34, context: YakuContext): WinningHand {
   const targetSets = 4 - (context.melds ?? []).length;
   const decompositions = decomposeStandardHand(hand).filter((d) => d.sets.length === targetSets);
   if (decompositions.length === 0) {
     throw new Error('완성된 손패(4멘츠+1페어)가 아닙니다');
   }
 
-  let best: YakuResult[] = [];
+  const openMelds = (context.melds ?? []).map<HandSet>((m) => ({
+    type: m.type === 'kotsu' || m.type === 'kantsu' ? 'kotsu' : 'shuntsu',
+    tiles: m.tiles,
+    isOpen: m.isOpen,
+  }));
+  const isMenzen = openMelds.every((m) => !m.isOpen);
+
+  let bestDecomp = decompositions[0];
+  let bestYaku: YakuResult[] = [];
   for (const decomp of decompositions) {
-    const yaku = evaluateDecomposition(decomp, context);
-    if (yaku.length > best.length) best = yaku;
+    const yaku = dedupeYaku(evaluateDecomposition(decomp, context));
+    if (yaku.length > bestYaku.length) {
+      bestYaku = yaku;
+      bestDecomp = decomp;
+    }
   }
 
-  const unique = new Map<string, YakuResult>();
-  for (const y of best) unique.set(y.key, y);
-  return [...unique.values()];
+  return {
+    sets: [...bestDecomp.sets, ...openMelds],
+    pairTile: bestDecomp.pairTile,
+    yaku: bestYaku,
+    isMenzen,
+  };
+}
+
+/**
+ * 완성된 손패의 성립 역을 판정한다.
+ * @param hand 멘젠 부분 손패 (이미 확정된 멘츠는 context.melds로 전달)
+ */
+export function checkYaku(hand: Hand34, context: YakuContext): YakuResult[] {
+  return getWinningHand(hand, context).yaku;
 }

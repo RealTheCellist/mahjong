@@ -7,6 +7,7 @@ import { ForwardCheckerScreen } from './intro/ForwardCheckerScreen';
 import { YakuDictionaryScreen } from './intro/YakuDictionaryScreen';
 import { YakuTableScreen } from './intro/YakuTableScreen';
 import { ReverseYakuExplorerScreen } from './intro/ReverseYakuExplorerScreen';
+import { PracticeGameScreen } from './intro/PracticeGameScreen';
 import { NanikiruDemo } from './nanikiru/NanikiruDemo';
 import { TrainingScreen } from './nanikiru/TrainingScreen';
 import { TheorySlidesScreen } from './nanikiru/TheorySlidesScreen';
@@ -47,6 +48,7 @@ function App() {
       {screen === 'yaku-dictionary' && <YakuDictionaryScreen />}
       {screen === 'yaku-table' && <YakuTableScreen />}
       {screen === 'reverse-explorer' && <ReverseYakuExplorerScreen />}
+      {screen === 'practice-game' && <PracticeGameScreen />}
       {screen === 'nanikiru' && <NanikiruDemo />}
       {screen === 'theory' && <TheorySlidesScreen />}
       {screen === 'training' && <TrainingScreen />}

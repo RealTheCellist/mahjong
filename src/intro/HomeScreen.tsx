@@ -14,6 +14,7 @@ export type IntroScreen =
   | 'yaku-dictionary'
   | 'yaku-table'
   | 'reverse-explorer'
+  | 'practice-game'
   | 'theory'
   | 'unit-test'
   | 'wrong-answers'
@@ -92,6 +93,9 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
         </button>
         <button type="button" onClick={() => onNavigate('reverse-explorer')}>
           역방향 탐색기
+        </button>
+        <button type="button" onClick={() => onNavigate('practice-game')}>
+          연습 게임 (AI 3인 대국)
         </button>
       </div>
 

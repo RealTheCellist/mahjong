@@ -1,0 +1,181 @@
+import { describe, expect, it } from 'vitest';
+import {
+  dealGame,
+  drawTile,
+  discardTile,
+  canTsumo,
+  canRon,
+  isTenpaiAfterDiscard,
+  applyTsumo,
+  applyRon,
+  currentPlayer,
+} from '../gameEngine';
+import { createEmptyHand34 } from '../../engine/types';
+import { tileNameToIndex, tileNamesToHand34 } from '../../engine/tileCodec';
+import type { GameState } from '../types';
+
+const idx = tileNameToIndex;
+
+function fixedRng(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    return s / 0x7fffffff;
+  };
+}
+
+describe('dealGame', () => {
+  it('딜러는 14장, 나머지는 13장을 받고 도라 표시패가 1장 있다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(1) });
+    expect(state.players[state.dealerSeat].hand.reduce((a, b) => a + b, 0)).toBe(14);
+    for (const p of state.players) {
+      if (p.seat !== state.dealerSeat) expect(p.hand.reduce((a, b) => a + b, 0)).toBe(13);
+    }
+    expect(state.doraIndicators.length).toBe(1);
+    expect(state.phase).toBe('discard');
+    expect(state.wall.length).toBe(136 - 13 * 4 - 1 - 1);
+  });
+
+  it('humanSeat과 aiLevels가 올바르게 배정된다', () => {
+    const state = dealGame({ humanSeat: 2, aiLevels: ['easy', 'normal', 'hard'], rng: fixedRng(2) });
+    expect(state.players[2].isHuman).toBe(true);
+    expect(state.players[2].aiLevel).toBeUndefined();
+    const aiPlayers = state.players.filter((p) => !p.isHuman);
+    expect(aiPlayers.map((p) => p.aiLevel)).toEqual(['easy', 'normal', 'hard']);
+  });
+});
+
+describe('drawTile', () => {
+  it('현재 차례 플레이어의 손패가 1장 늘어난다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(3) });
+    const afterDiscard = discardTile(state, state.lastDraw as number);
+    const before = afterDiscard.players[afterDiscard.currentSeat].hand.reduce((a, b) => a + b, 0);
+    const drawn = drawTile(afterDiscard);
+    const after = drawn.players[drawn.currentSeat].hand.reduce((a, b) => a + b, 0);
+    expect(after).toBe(before + 1);
+    expect(drawn.phase).toBe('discard');
+  });
+
+  it('벽이 비면 유국(draw) 처리한다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(4) });
+    const emptied: GameState = { ...state, wall: [] };
+    const result = drawTile(emptied);
+    expect(result.phase).toBe('ended');
+    expect(result.result).toEqual({ type: 'draw' });
+  });
+});
+
+describe('discardTile', () => {
+  it('버린 패가 discards에 쌓이고 차례가 다음 사람에게 넘어간다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(5) });
+    const dealerSeat = state.dealerSeat;
+    const tile = state.lastDraw as number;
+    const next = discardTile(state, tile);
+    expect(next.players[dealerSeat].discards).toContain(tile);
+    expect(next.currentSeat).toBe((dealerSeat + 1) % 4);
+    expect(next.phase).toBe('draw');
+    expect(next.lastDiscard).toEqual({ seat: dealerSeat, tile });
+  });
+
+  it('리치 조건을 만족하고 declareRiichi를 지정하면 리치 처리 및 1000점 차감된다', () => {
+    // 텐파이 상태의 손패를 강제로 세팅
+    const tenpaiHand = tileNamesToHand34([
+      '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s',
+    ]);
+    // 14번째 패를 하나 더해 버릴 수 있게 함 (필요없는 패)
+    tenpaiHand[idx('1z')] = 1;
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(6) });
+    const dealerSeat = state.dealerSeat;
+    const rigged: GameState = {
+      ...state,
+      players: state.players.map((p) => (p.seat === dealerSeat ? { ...p, hand: tenpaiHand } : p)),
+    };
+    expect(isTenpaiAfterDiscard(tenpaiHand, idx('1z'))).toBe(true);
+    const next = discardTile(rigged, idx('1z'), { declareRiichi: true });
+    expect(next.players[dealerSeat].isRiichi).toBe(true);
+    expect(next.players[dealerSeat].score).toBe(25000 - 1000);
+  });
+
+  it('텐파이가 아니면 declareRiichi를 요청해도 리치가 되지 않는다', () => {
+    const notTenpaiHand = createEmptyHand34();
+    // 완전히 흩어진 패 (텐파이와 거리가 먼 형태)
+    ['1m', '4m', '7m', '1p', '4p', '7p', '1s', '4s', '7s', '1z', '3z', '5z', '7z'].forEach((n) => {
+      notTenpaiHand[idx(n)] += 1;
+    });
+    notTenpaiHand[idx('9m')] = 1;
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(7) });
+    const dealerSeat = state.dealerSeat;
+    const rigged: GameState = {
+      ...state,
+      players: state.players.map((p) => (p.seat === dealerSeat ? { ...p, hand: notTenpaiHand } : p)),
+    };
+    const next = discardTile(rigged, idx('9m'), { declareRiichi: true });
+    expect(next.players[dealerSeat].isRiichi).toBe(false);
+    expect(next.players[dealerSeat].score).toBe(25000);
+  });
+});
+
+describe('canTsumo / applyTsumo', () => {
+  it('쯔모 가능한 손패라면 canTsumo가 true를 반환하고 applyTsumo로 점수가 이동한다', () => {
+    const winningHand = tileNamesToHand34([
+      '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s',
+    ]);
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(8) });
+    const dealerSeat = state.dealerSeat;
+    const winTile = idx('8s');
+    const rigged: GameState = {
+      ...state,
+      lastDraw: winTile,
+      players: state.players.map((p) =>
+        p.seat === dealerSeat ? { ...p, hand: (() => { const h = [...winningHand]; h[winTile] += 1; return h; })() } : p,
+      ),
+    };
+    expect(canTsumo(rigged)).toBe(true);
+    const result = applyTsumo(rigged);
+    expect(result.phase).toBe('ended');
+    expect(result.result?.type).toBe('tsumo');
+    const totalScore = result.players.reduce((sum, p) => sum + p.score, 0);
+    expect(totalScore).toBe(25000 * 4);
+    expect(result.players[dealerSeat].score).toBeGreaterThan(25000);
+  });
+});
+
+describe('canRon / applyRon', () => {
+  it('론 가능한 손패라면 canRon이 true를 반환하고 applyRon으로 점수가 이동한다', () => {
+    const tenpaiHand = tileNamesToHand34([
+      '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s',
+    ]);
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(9) });
+    const dealerSeat = state.dealerSeat;
+    const ronSeat = (dealerSeat + 1) % 4;
+    const discardSeat = (dealerSeat + 3) % 4; // ronSeat 바로 이전 사람 (버림패 대상)
+    const winTile = idx('8s');
+    const rigged: GameState = {
+      ...state,
+      lastDiscard: { seat: discardSeat, tile: winTile },
+      players: state.players.map((p) => (p.seat === ronSeat ? { ...p, hand: tenpaiHand } : p)),
+    };
+    expect(canRon(rigged, ronSeat)).toBe(true);
+    const result = applyRon(rigged, ronSeat);
+    expect(result.phase).toBe('ended');
+    expect(result.result?.type).toBe('ron');
+    const totalScore = result.players.reduce((sum, p) => sum + p.score, 0);
+    expect(totalScore).toBe(25000 * 4);
+    expect(result.players[ronSeat].score).toBeGreaterThan(25000);
+    expect(result.players[discardSeat].score).toBeLessThan(25000);
+  });
+
+  it('자신이 버린 패로는 론을 할 수 없다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(10) });
+    const dealerSeat = state.dealerSeat;
+    const rigged: GameState = { ...state, lastDiscard: { seat: dealerSeat, tile: idx('1m') } };
+    expect(canRon(rigged, dealerSeat)).toBe(false);
+  });
+});
+
+describe('currentPlayer', () => {
+  it('현재 차례 플레이어를 반환한다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(11) });
+    expect(currentPlayer(state).seat).toBe(state.currentSeat);
+  });
+});
