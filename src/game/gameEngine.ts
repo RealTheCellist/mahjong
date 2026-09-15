@@ -1,8 +1,9 @@
 import { createEmptyHand34 } from '../engine/types';
-import type { Hand34 } from '../engine/types';
+import type { Hand34, Meld } from '../engine/types';
 import { calculateShanten } from '../engine/shanten';
 import { checkYaku } from '../engine/yaku';
 import { calculateScore, type ScoreResult } from '../engine/scoring';
+import { canPon, canMinkan, getChiOptions } from '../engine/calls';
 import type { AiLevel, GameState, PlayerState } from './types';
 
 const RIICHI_STICK = 1000;
@@ -57,6 +58,7 @@ export function dealGame(options: DealOptions): GameState {
     isHuman: seat === humanSeat,
     aiLevel: seat === humanSeat ? undefined : aiLevels[aiIndex++],
     hand: handFromTiles(hands[seat]),
+    melds: [],
     discards: [],
     isRiichi: false,
     score: STARTING_SCORE,
@@ -89,7 +91,7 @@ export function drawTile(state: GameState): GameState {
   return { ...state, wall: restWall, players, phase: 'discard', lastDraw: tile };
 }
 
-function bumpHand(hand: Hand34, tile: number, delta: number): Hand34 {
+export function bumpHand(hand: Hand34, tile: number, delta: number): Hand34 {
   const next = [...hand];
   next[tile] += delta;
   return next;
@@ -110,6 +112,7 @@ export function canTsumo(state: GameState): boolean {
       isRiichi: player.isRiichi,
       seatWind: player.seatWind,
       roundWind: state.roundWind,
+      melds: player.melds,
     });
     return yaku.length > 0;
   } catch {
@@ -129,6 +132,7 @@ export function canRon(state: GameState, seat: number): boolean {
       isRiichi: player.isRiichi,
       seatWind: player.seatWind,
       roundWind: state.roundWind,
+      melds: player.melds,
     });
     return yaku.length > 0;
   } catch {
@@ -214,6 +218,7 @@ export function applyTsumo(state: GameState): GameState {
     seatWind: winner.seatWind,
     roundWind: state.roundWind,
     doraIndicators: state.doraIndicators,
+    melds: winner.melds,
   });
   const players = applyPayments(state.players, winner.seat, state.dealerSeat, score);
   return { ...state, players, phase: 'ended', result: { type: 'tsumo', winnerSeat: winner.seat, score } };
@@ -232,6 +237,7 @@ export function applyRon(state: GameState, ronSeat: number): GameState {
     seatWind: winner.seatWind,
     roundWind: state.roundWind,
     doraIndicators: state.doraIndicators,
+    melds: winner.melds,
   });
   const players = applyPayments(state.players, winner.seat, state.dealerSeat, score, state.lastDiscard.seat);
   return {
@@ -240,4 +246,124 @@ export function applyRon(state: GameState, ronSeat: number): GameState {
     phase: 'ended',
     result: { type: 'ron', winnerSeat: winner.seat, loserSeat: state.lastDiscard.seat, score },
   };
+}
+
+// ---------------------------------------------------------------------------
+// 콜 액션 (치/퐁/깡)
+//
+// 밍깡/안깡의 보충패와 새 도라 표시패는 별도의 사왕패(死牌)를 모델링하지 않고
+// wall의 끝에서 pop()해 충당한다(첫 도라 표시패도 동일한 방식이다). 실전보다
+// 산패가 조금 더 빨리 줄어들지만 1인 연습 게임에서는 무시할 수 있는 차이다.
+// ---------------------------------------------------------------------------
+
+/** seat가 현재 버려진 패로 퐁을 부를 수 있는지 */
+export function canCallPonOn(state: GameState, seat: number): boolean {
+  if (!state.lastDiscard || state.lastDiscard.seat === seat) return false;
+  return canPon(state.players[seat].hand, state.lastDiscard.tile);
+}
+
+/** seat가 현재 버려진 패로 밍깡을 부를 수 있는지 */
+export function canCallKanOn(state: GameState, seat: number): boolean {
+  if (!state.lastDiscard || state.lastDiscard.seat === seat) return false;
+  return canMinkan(state.players[seat].hand, state.lastDiscard.tile);
+}
+
+/** seat가 현재 버려진 패로 치를 부를 수 있는지 (버림패 바로 다음 차례만 가능) */
+export function canCallChiOn(state: GameState, seat: number): [number, number][] {
+  if (!state.lastDiscard || state.lastDiscard.seat === seat) return [];
+  if (seat !== (state.lastDiscard.seat + 1) % 4) return [];
+  return getChiOptions(state.players[seat].hand, state.lastDiscard.tile);
+}
+
+/** seat가 버려진 패로 퐁을 선언한다. 이후 해당 seat가 버림 차례를 갖는다 */
+export function callPon(state: GameState, seat: number): GameState {
+  if (!state.lastDiscard) throw new Error('울 수 있는 버림패가 없습니다');
+  const tile = state.lastDiscard.tile;
+  const meld: Meld = { type: 'kotsu', tiles: [tile, tile, tile], isOpen: true };
+  const players = state.players.map((p) =>
+    p.seat === seat
+      ? { ...p, hand: bumpHand(p.hand, tile, -2), melds: [...p.melds, meld] }
+      : p,
+  );
+  return {
+    ...state,
+    players,
+    currentSeat: seat,
+    phase: 'discard',
+    lastDraw: undefined,
+    lastDiscard: undefined,
+    turnCount: state.turnCount + 1,
+  };
+}
+
+/** seat가 버려진 패와 손패 두 장으로 치를 선언한다. 이후 해당 seat가 버림 차례를 갖는다 */
+export function callChi(state: GameState, seat: number, chiTiles: [number, number]): GameState {
+  if (!state.lastDiscard) throw new Error('울 수 있는 버림패가 없습니다');
+  const tile = state.lastDiscard.tile;
+  const meld: Meld = { type: 'shuntsu', tiles: [...chiTiles, tile].sort((a, b) => a - b), isOpen: true };
+  const players = state.players.map((p) =>
+    p.seat === seat
+      ? { ...p, hand: bumpHand(bumpHand(p.hand, chiTiles[0], -1), chiTiles[1], -1), melds: [...p.melds, meld] }
+      : p,
+  );
+  return {
+    ...state,
+    players,
+    currentSeat: seat,
+    phase: 'discard',
+    lastDraw: undefined,
+    lastDiscard: undefined,
+    turnCount: state.turnCount + 1,
+  };
+}
+
+/** 깡 선언 후 보충패를 뽑고 새 도라 표시패를 하나 추가한다. 산이 없으면 유국 처리한다 */
+function drawKanReplacement(state: GameState, hand: Hand34, meld: Meld, seat: number): GameState {
+  const wall = [...state.wall];
+  const replacement = wall.pop();
+  const newDoraIndicator = wall.pop();
+  const doraIndicators =
+    newDoraIndicator !== undefined ? [...state.doraIndicators, newDoraIndicator] : state.doraIndicators;
+
+  if (replacement === undefined) {
+    const players = state.players.map((p) => (p.seat === seat ? { ...p, hand, melds: [...p.melds, meld] } : p));
+    return { ...state, players, wall, doraIndicators, phase: 'ended', result: { type: 'draw' } };
+  }
+
+  const finalHand = bumpHand(hand, replacement, 1);
+  const players = state.players.map((p) =>
+    p.seat === seat ? { ...p, hand: finalHand, melds: [...p.melds, meld] } : p,
+  );
+  return {
+    ...state,
+    players,
+    wall,
+    doraIndicators,
+    currentSeat: seat,
+    phase: 'discard',
+    lastDraw: replacement,
+    lastDiscard: undefined,
+  };
+}
+
+/** seat가 버려진 패로 밍깡(공개 깡)을 선언한다 */
+export function callMinkan(state: GameState, seat: number): GameState {
+  if (!state.lastDiscard) throw new Error('울 수 있는 버림패가 없습니다');
+  const tile = state.lastDiscard.tile;
+  const player = state.players[seat];
+  const meld: Meld = { type: 'kantsu', tiles: [tile, tile, tile, tile], isOpen: true };
+  const hand = bumpHand(player.hand, tile, -3);
+  return drawKanReplacement(state, hand, meld, seat);
+}
+
+/** 현재 차례 플레이어가 자신의 손패로 안깡(비공개 깡)을 선언한다 */
+export function callAnkan(state: GameState, tile: number): GameState {
+  const seat = state.currentSeat;
+  const player = state.players[seat];
+  if (state.phase !== 'discard' || player.hand[tile] < 4) {
+    throw new Error('안깡을 선언할 수 없습니다');
+  }
+  const meld: Meld = { type: 'kantsu', tiles: [tile, tile, tile, tile], isOpen: false };
+  const hand = bumpHand(player.hand, tile, -4);
+  return drawKanReplacement(state, hand, meld, seat);
 }

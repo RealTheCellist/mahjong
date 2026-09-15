@@ -63,6 +63,19 @@ describe('calculateScore', () => {
     expect(result.totalPoints % 300).toBe(0); // 3명에게 동일 금액씩 걷으므로 300의 배수
   });
 
+  it('안깡(멘젠 유지)은 부수에 반영되고 멘젠 상태를 유지한다', () => {
+    const hand = tileNamesToHand34(['2m', '3m', '4m', '5p', '6p', '7p', '3s', '4s', '5s', '9s', '9s']);
+    const result = calculateScore(hand, {
+      winTile: idx('5s'),
+      isDealer: false,
+      isTsumo: false,
+      melds: [{ type: 'kantsu', tiles: [idx('5z'), idx('5z'), idx('5z'), idx('5z')], isOpen: false }],
+    });
+    // 20(기본) + 10(멘젠 론) + 32(자패 안깡) = 62 -> 70으로 올림
+    expect(result.fu).toBe(70);
+    expect(result.yaku.some((y) => y.key === 'yakuhai_dragon')).toBe(true);
+  });
+
   it('역이 없으면 에러를 던진다', () => {
     const hand = tileNamesToHand34([
       '9m', '9m', '9m', '1p', '2p', '3p', '5p', '6p', '7p', '1s', '2s', '3s', '5s', '5s',

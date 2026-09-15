@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decideAiDiscard, decideAiTsumo, decideAiRon } from '../aiPlayer';
+import { decideAiDiscard, decideAiTsumo, decideAiRon, decideAiPon, decideAiChi, decideAiKan, decideAiAnkan } from '../aiPlayer';
 import { dealGame, discardTile, drawTile } from '../gameEngine';
 import { tileNameToIndex, tileNamesToHand34 } from '../../engine/tileCodec';
 import type { GameState } from '../types';
@@ -92,6 +92,77 @@ describe('decideAiDiscard', () => {
       ),
     });
     expect(() => decideAiDiscard(rigged, seat, fixedRng(8))).not.toThrow();
+  });
+});
+
+describe('decideAiPon / decideAiChi / decideAiKan / decideAiAnkan', () => {
+  it('퐁으로 샨텐이 좋아지면 hard 난이도는 항상 부른다', () => {
+    // 1샨텐 형태에서 대기 중이던 페어를 퐁하면 완성에 가까워지는 손패 구성
+    const hand = tileNamesToHand34([
+      '2m', '3m', '4m', '5p', '6p', '7p', '3s', '4s', '5s', '9s', '9s', '1z', '1z',
+    ]);
+    const state = dealGame({ aiLevels: ['hard', 'hard', 'hard'], rng: fixedRng(30) });
+    const seat = findAiSeat(state);
+    const opponentSeat = (seat + 3) % 4; // 버림 주체(퐁 대상 자리가 아니어야 함)
+    const rigged: GameState = {
+      ...state,
+      currentSeat: seat,
+      lastDiscard: { seat: opponentSeat, tile: idx('1z') },
+      players: state.players.map((p) => (p.seat === seat ? { ...p, hand } : p)),
+    };
+    expect(decideAiPon(rigged, seat, fixedRng(31))).toBe(true);
+  });
+
+  it('리치 중인 AI는 퐁/치/깡을 절대 부르지 않는다', () => {
+    const hand = tileNamesToHand34([
+      '2m', '3m', '4m', '5p', '6p', '7p', '3s', '4s', '5s', '9s', '9s', '1z', '1z',
+    ]);
+    const state = dealGame({ aiLevels: ['hard', 'hard', 'hard'], rng: fixedRng(32) });
+    const seat = findAiSeat(state);
+    const opponentSeat = (seat + 3) % 4;
+    const rigged: GameState = {
+      ...state,
+      currentSeat: seat,
+      lastDiscard: { seat: opponentSeat, tile: idx('1z') },
+      players: state.players.map((p) => (p.seat === seat ? { ...p, hand, isRiichi: true } : p)),
+    };
+    expect(decideAiPon(rigged, seat, fixedRng(33))).toBe(false);
+    expect(decideAiKan(rigged, seat, fixedRng(33))).toBe(false);
+  });
+
+  it('치가 가능한 형태에서 샨텐이 좋아지면 조합을 반환한다', () => {
+    const hand = tileNamesToHand34([
+      '2m', '3m', '4m', '5p', '6p', '3s', '4s', '9s', '9s', '1z', '1z', '2z', '2z',
+    ]);
+    const state = dealGame({ aiLevels: ['hard', 'hard', 'hard'], rng: fixedRng(34) });
+    const seat = findAiSeat(state);
+    const discarderSeat = (seat + 3) % 4;
+    const rigged: GameState = {
+      ...state,
+      currentSeat: seat,
+      lastDiscard: { seat: discarderSeat, tile: idx('7p') },
+      players: state.players.map((p) => (p.seat === seat ? { ...p, hand } : p)),
+    };
+    const chi = decideAiChi(rigged, seat, fixedRng(35));
+    expect(chi).toEqual([idx('5p'), idx('6p')]);
+  });
+
+  it('안깡 후보가 있으면 손패에서 해당 패를 반환할 수 있다(hard는 대체로 부른다)', () => {
+    const hand = tileNamesToHand34([
+      '2m', '3m', '4m', '5p', '6p', '7p', '3s', '4s', '5s', '9s', '9s', '1z', '1z', '1z',
+    ]);
+    hand[idx('1z')] = 4;
+    const state = dealGame({ aiLevels: ['hard', 'hard', 'hard'], rng: fixedRng(36) });
+    const seat = findAiSeat(state);
+    const rigged: GameState = { ...state, players: state.players.map((p) => (p.seat === seat ? { ...p, hand } : p)) };
+    let ankanFound = false;
+    for (let i = 0; i < 20; i += 1) {
+      if (decideAiAnkan(rigged, seat, fixedRng(40 + i)) === idx('1z')) {
+        ankanFound = true;
+        break;
+      }
+    }
+    expect(ankanFound).toBe(true);
   });
 });
 

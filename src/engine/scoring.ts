@@ -59,9 +59,15 @@ function getWaitType(sets: HandSet[], pairTile: number, winTile: number): WaitTy
 function fuForSet(set: HandSet): number {
   const { suit, value } = tileSuitAndValue(set.tiles[0]);
   const isTerminalOrHonor = suit === 'z' || value === 1 || value === 9;
-  if (set.type !== 'kotsu') return 0;
-  if (set.isOpen) return isTerminalOrHonor ? 4 : 2;
-  return isTerminalOrHonor ? 8 : 4;
+  if (set.type === 'kotsu') {
+    if (set.isOpen) return isTerminalOrHonor ? 4 : 2;
+    return isTerminalOrHonor ? 8 : 4;
+  }
+  if (set.type === 'kantsu') {
+    if (set.isOpen) return isTerminalOrHonor ? 16 : 8;
+    return isTerminalOrHonor ? 32 : 16;
+  }
+  return 0;
 }
 
 export interface ScoreContext extends YakuContext {

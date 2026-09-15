@@ -3,10 +3,36 @@ import { AppBrand } from '../components/AppBrand';
 import { HandView } from '../components/HandView';
 import { Tile } from '../components/Tile';
 import { INTRO_APP_NAME } from '../branding';
-import { dealGame, drawTile, discardTile, canTsumo, canRon, applyTsumo, applyRon, isTenpaiAfterDiscard } from '../game/gameEngine';
-import { decideAiDiscard, decideAiTsumo, decideAiRon } from '../game/aiPlayer';
+import {
+  dealGame,
+  drawTile,
+  discardTile,
+  canTsumo,
+  canRon,
+  applyTsumo,
+  applyRon,
+  isTenpaiAfterDiscard,
+  canCallPonOn,
+  canCallKanOn,
+  canCallChiOn,
+  callPon,
+  callChi,
+  callMinkan,
+  callAnkan,
+} from '../game/gameEngine';
+import {
+  decideAiDiscard,
+  decideAiTsumo,
+  decideAiRon,
+  decideAiPon,
+  decideAiChi,
+  decideAiKan,
+  decideAiAnkan,
+} from '../game/aiPlayer';
 import type { AiLevel, GameState } from '../game/types';
+import type { Meld } from '../engine/types';
 import { tileIndexToName } from '../engine/tileCodec';
+import { findAnkanCandidates } from '../engine/calls';
 
 const HUMAN_SEAT = 0;
 const AI_STEP_DELAY_MS = 650;
@@ -19,21 +45,43 @@ function seatOffset(seat: number): number {
   return (seat - HUMAN_SEAT + 4) % 4;
 }
 
+type PendingReaction =
+  | { type: 'ron'; seat: number }
+  | { type: 'call'; seat: number; canPon: boolean; canKan: boolean }
+  | { type: 'chi'; seat: number; options: [number, number][] };
+
+function MeldView({ meld }: { meld: Meld }) {
+  return (
+    <div style={{ display: 'flex', gap: 1 }}>
+      {meld.tiles.map((t, i) => (
+        <Tile key={i} index={t} width={20} />
+      ))}
+    </div>
+  );
+}
+
 export function PracticeGameScreen() {
   const [aiLevels, setAiLevels] = useState<[AiLevel, AiLevel, AiLevel]>(['normal', 'normal', 'normal']);
   const [state, setState] = useState<GameState | null>(null);
-  const [pendingRonSeat, setPendingRonSeat] = useState<number | null>(null);
+  const [pendingReaction, setPendingReaction] = useState<PendingReaction | null>(null);
+  const [declinedSeats, setDeclinedSeats] = useState<Set<number>>(new Set());
   const [selectedDiscard, setSelectedDiscard] = useState<number | null>(null);
 
   const startGame = () => {
     setState(dealGame({ humanSeat: HUMAN_SEAT, aiLevels }));
-    setPendingRonSeat(null);
+    setPendingReaction(null);
+    setDeclinedSeats(new Set());
     setSelectedDiscard(null);
   };
 
-  // 자동 진행: AI 차례의 쯔모/버림 판단, 그리고 버림 이후의 론 리액션 윈도우 처리
+  // 새로운 버림패가 나올 때마다 "이번 버림패에 대해 넘긴 사람" 기록을 초기화한다
   useEffect(() => {
-    if (!state || state.phase === 'ended' || pendingRonSeat !== null) return;
+    setDeclinedSeats(new Set());
+  }, [state?.lastDiscard]);
+
+  // 자동 진행: AI 차례의 안깡/쯔모/버림 판단, 그리고 버림 이후의 론>퐁·깡>치 순 리액션 처리
+  useEffect(() => {
+    if (!state || state.phase === 'ended' || pendingReaction) return;
 
     if (state.phase === 'discard') {
       const player = state.players[state.currentSeat];
@@ -44,6 +92,11 @@ export function PracticeGameScreen() {
           setState(applyTsumo(state));
           return;
         }
+        const ankanTile = decideAiAnkan(state, state.currentSeat);
+        if (ankanTile !== null) {
+          setState(callAnkan(state, ankanTile));
+          return;
+        }
         const { tile, declareRiichi } = decideAiDiscard(state, state.currentSeat);
         setState(discardTile(state, tile, { declareRiichi }));
       }, AI_STEP_DELAY_MS);
@@ -51,13 +104,13 @@ export function PracticeGameScreen() {
     }
 
     if (state.phase === 'draw') {
-      // 방금 버려진 패에 대해 론 가능한 사람이 있는지, 버림 다음 자리부터 순서대로 확인한다
       const order = [0, 1, 2].map((o) => (state.currentSeat + o) % 4);
+
+      // 1순위: 론
       for (const seat of order) {
-        if (!canRon(state, seat)) continue;
-        const reactor = state.players[seat];
-        if (reactor.isHuman) {
-          setPendingRonSeat(seat);
+        if (declinedSeats.has(seat) || !canRon(state, seat)) continue;
+        if (state.players[seat].isHuman) {
+          setPendingReaction({ type: 'ron', seat });
           return;
         }
         if (decideAiRon()) {
@@ -65,10 +118,49 @@ export function PracticeGameScreen() {
           return () => clearTimeout(timer);
         }
       }
+
+      // 2순위: 퐁/깡 (치보다 우선)
+      for (const seat of order) {
+        if (declinedSeats.has(seat)) continue;
+        const kanOk = canCallKanOn(state, seat);
+        const ponOk = canCallPonOn(state, seat);
+        if (!kanOk && !ponOk) continue;
+        if (state.players[seat].isHuman) {
+          setPendingReaction({ type: 'call', seat, canPon: ponOk, canKan: kanOk });
+          return;
+        }
+        if (kanOk && decideAiKan(state, seat)) {
+          const timer = setTimeout(() => setState(callMinkan(state, seat)), AI_STEP_DELAY_MS);
+          return () => clearTimeout(timer);
+        }
+        if (ponOk && decideAiPon(state, seat)) {
+          const timer = setTimeout(() => setState(callPon(state, seat)), AI_STEP_DELAY_MS);
+          return () => clearTimeout(timer);
+        }
+      }
+
+      // 3순위: 치 (버림패 바로 다음 차례만 가능)
+      const chiSeat = state.currentSeat;
+      if (!declinedSeats.has(chiSeat)) {
+        const chiOptions = canCallChiOn(state, chiSeat);
+        if (chiOptions.length > 0) {
+          if (state.players[chiSeat].isHuman) {
+            setPendingReaction({ type: 'chi', seat: chiSeat, options: chiOptions });
+            return;
+          }
+          const aiChoice = decideAiChi(state, chiSeat);
+          if (aiChoice) {
+            const timer = setTimeout(() => setState(callChi(state, chiSeat, aiChoice)), AI_STEP_DELAY_MS);
+            return () => clearTimeout(timer);
+          }
+        }
+      }
+
+      // 아무도 부르지 않으면 다음 사람이 드로우
       const timer = setTimeout(() => setState(drawTile(state)), AI_STEP_DELAY_MS - 250);
       return () => clearTimeout(timer);
     }
-  }, [state, pendingRonSeat]);
+  }, [state, pendingReaction, declinedSeats]);
 
   if (!state) {
     return (
@@ -115,17 +207,37 @@ export function PracticeGameScreen() {
   };
 
   const handleHumanTsumo = () => setState(applyTsumo(state));
+  const handleHumanAnkan = (tile: number) => setState(callAnkan(state, tile));
 
   const handleHumanRon = () => {
-    if (pendingRonSeat === null) return;
-    setState(applyRon(state, pendingRonSeat));
-    setPendingRonSeat(null);
+    if (pendingReaction?.type !== 'ron') return;
+    setState(applyRon(state, pendingReaction.seat));
+    setPendingReaction(null);
   };
 
-  const handleSkipRon = () => {
-    if (!state) return;
-    setPendingRonSeat(null);
-    setState(drawTile(state));
+  const handleHumanCallPon = () => {
+    if (pendingReaction?.type !== 'call') return;
+    setState(callPon(state, pendingReaction.seat));
+    setPendingReaction(null);
+  };
+
+  const handleHumanCallKan = () => {
+    if (pendingReaction?.type !== 'call') return;
+    setState(callMinkan(state, pendingReaction.seat));
+    setPendingReaction(null);
+  };
+
+  const handleHumanCallChi = (option: [number, number]) => {
+    if (pendingReaction?.type !== 'chi') return;
+    setState(callChi(state, pendingReaction.seat, option));
+    setPendingReaction(null);
+  };
+
+  const handleSkipReaction = () => {
+    if (!pendingReaction) return;
+    // 이번 버림패에 한해 이 자리는 더 이상 반응을 묻지 않는다(론/퐁·깡/치 모두)
+    setDeclinedSeats((prev) => new Set(prev).add(pendingReaction.seat));
+    setPendingReaction(null);
   };
 
   const canRiichiOnSelected =
@@ -133,6 +245,9 @@ export function PracticeGameScreen() {
     !human.isRiichi &&
     human.score >= 1000 &&
     isTenpaiAfterDiscard(human.hand, selectedDiscard);
+
+  const ankanCandidates =
+    state.phase === 'discard' && state.currentSeat === HUMAN_SEAT ? findAnkanCandidates(human.hand) : [];
 
   return (
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
@@ -170,6 +285,13 @@ export function PracticeGameScreen() {
               </div>
               <div>점수: {p.score}</div>
               <div>{p.isRiichi ? '리치 중' : ''}</div>
+              {p.melds.length > 0 && (
+                <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                  {p.melds.map((m, i) => (
+                    <MeldView key={i} meld={m} />
+                  ))}
+                </div>
+              )}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginTop: 4 }}>
                 {p.discards.map((t, i) => (
                   <Tile key={i} index={t} width={18} />
@@ -186,6 +308,15 @@ export function PracticeGameScreen() {
         {state.currentSeat === HUMAN_SEAT ? '나' : SEAT_LABELS[seatOffset(state.currentSeat)]}
       </div>
 
+      {human.melds.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          내 멘츠:
+          {human.melds.map((m, i) => (
+            <MeldView key={i} meld={m} />
+          ))}
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 8 }}>
         내 버림패:
         {human.discards.map((t, i) => (
@@ -196,7 +327,7 @@ export function PracticeGameScreen() {
       <HandView
         key={state.turnCount}
         hand={human.hand}
-        interactive={state.phase === 'discard' && state.currentSeat === HUMAN_SEAT && pendingRonSeat === null}
+        interactive={state.phase === 'discard' && state.currentSeat === HUMAN_SEAT && pendingReaction === null}
         onSelectDiscard={handleSelectDiscard}
       />
 
@@ -207,6 +338,11 @@ export function PracticeGameScreen() {
               쯔모!
             </button>
           )}
+          {ankanCandidates.map((tile) => (
+            <button key={tile} type="button" onClick={() => handleHumanAnkan(tile)}>
+              {tileIndexToName(tile)} 안깡
+            </button>
+          ))}
           {selectedDiscard !== null && (
             <>
               <button type="button" onClick={() => confirmDiscard(false)}>
@@ -222,7 +358,7 @@ export function PracticeGameScreen() {
         </div>
       )}
 
-      {pendingRonSeat !== null && (
+      {pendingReaction?.type === 'ron' && (
         <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}>
           <div>
             {SEAT_LABELS[seatOffset(state.lastDiscard?.seat ?? 0)]}가 버린{' '}
@@ -232,7 +368,49 @@ export function PracticeGameScreen() {
             <button type="button" onClick={handleHumanRon}>
               론!
             </button>
-            <button type="button" onClick={handleSkipRon}>
+            <button type="button" onClick={handleSkipReaction}>
+              넘기기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pendingReaction?.type === 'call' && (
+        <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}>
+          <div>
+            {SEAT_LABELS[seatOffset(state.lastDiscard?.seat ?? 0)]}가 버린{' '}
+            {state.lastDiscard ? tileIndexToName(state.lastDiscard.tile) : ''}(으)로 울 수 있습니다.
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            {pendingReaction.canKan && (
+              <button type="button" onClick={handleHumanCallKan}>
+                깡!
+              </button>
+            )}
+            {pendingReaction.canPon && (
+              <button type="button" onClick={handleHumanCallPon}>
+                퐁!
+              </button>
+            )}
+            <button type="button" onClick={handleSkipReaction}>
+              넘기기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pendingReaction?.type === 'chi' && (
+        <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}>
+          <div>
+            {state.lastDiscard ? tileIndexToName(state.lastDiscard.tile) : ''}(으)로 치를 부를 수 있습니다.
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+            {pendingReaction.options.map((option, i) => (
+              <button key={i} type="button" onClick={() => handleHumanCallChi(option)}>
+                {tileIndexToName(option[0])}·{tileIndexToName(option[1])}로 치
+              </button>
+            ))}
+            <button type="button" onClick={handleSkipReaction}>
               넘기기
             </button>
           </div>

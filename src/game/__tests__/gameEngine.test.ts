@@ -9,6 +9,13 @@ import {
   applyTsumo,
   applyRon,
   currentPlayer,
+  canCallPonOn,
+  canCallKanOn,
+  canCallChiOn,
+  callPon,
+  callChi,
+  callMinkan,
+  callAnkan,
 } from '../gameEngine';
 import { createEmptyHand34 } from '../../engine/types';
 import { tileNameToIndex, tileNamesToHand34 } from '../../engine/tileCodec';
@@ -170,6 +177,133 @@ describe('canRon / applyRon', () => {
     const dealerSeat = state.dealerSeat;
     const rigged: GameState = { ...state, lastDiscard: { seat: dealerSeat, tile: idx('1m') } };
     expect(canRon(rigged, dealerSeat)).toBe(false);
+  });
+});
+
+describe('콜 액션 (치/퐁/깡)', () => {
+  it('손패에 2장 있으면 퐁을 부를 수 있다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(20) });
+    const dealerSeat = state.dealerSeat;
+    const tile = state.lastDraw as number;
+    const ponSeat = (dealerSeat + 1) % 4;
+    const withExtra: GameState = {
+      ...state,
+      players: state.players.map((p) => (p.seat === ponSeat ? { ...p, hand: (() => { const h = [...p.hand]; h[tile] = Math.max(h[tile], 2); return h; })() } : p)),
+    };
+    const afterDiscard = discardTile(withExtra, tile);
+    expect(canCallPonOn(afterDiscard, ponSeat)).toBe(true);
+
+    const ponned = callPon(afterDiscard, ponSeat);
+    expect(ponned.players[ponSeat].melds).toEqual([{ type: 'kotsu', tiles: [tile, tile, tile], isOpen: true }]);
+    expect(ponned.players[ponSeat].hand[tile]).toBe(0);
+    expect(ponned.currentSeat).toBe(ponSeat);
+    expect(ponned.phase).toBe('discard');
+  });
+
+  it('직전 사람이 버린 패는 다음 차례 플레이어가 치를 부를 수 있다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(21) });
+    const dealerSeat = state.dealerSeat;
+    const chiSeat = (dealerSeat + 1) % 4;
+    const tile = idx('5s');
+    const rigged: GameState = {
+      ...state,
+      players: state.players.map((p) => {
+        if (p.seat === dealerSeat) {
+          const h = [...p.hand];
+          h[tile] += 1;
+          return { ...p, hand: h };
+        }
+        if (p.seat === chiSeat) {
+          const h = [...p.hand];
+          h[idx('4s')] += 1;
+          h[idx('6s')] += 1;
+          return { ...p, hand: h };
+        }
+        return p;
+      }),
+    };
+    const afterDiscard = discardTile(rigged, tile);
+    const options = canCallChiOn(afterDiscard, chiSeat);
+    expect(options).toEqual(expect.arrayContaining([[idx('4s'), idx('6s')]]));
+
+    const chiied = callChi(afterDiscard, chiSeat, [idx('4s'), idx('6s')]);
+    expect(chiied.players[chiSeat].melds).toEqual([
+      { type: 'shuntsu', tiles: [idx('4s'), idx('5s'), idx('6s')], isOpen: true },
+    ]);
+    expect(chiied.currentSeat).toBe(chiSeat);
+    expect(chiied.phase).toBe('discard');
+  });
+
+  it('건너뛴 자리(맞은편 등)는 치를 부를 수 없다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(22) });
+    const dealerSeat = state.dealerSeat;
+    const acrossSeat = (dealerSeat + 2) % 4;
+    const tile = state.lastDraw as number;
+    const afterDiscard = discardTile(state, tile);
+    expect(canCallChiOn(afterDiscard, acrossSeat)).toEqual([]);
+  });
+
+  it('밍깡: 손패 3장 + 버림패 1장으로 깡을 만들고 보충패를 뽑는다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(23) });
+    const dealerSeat = state.dealerSeat;
+    const kanSeat = (dealerSeat + 1) % 4;
+    const tile = state.lastDraw as number;
+    const withTriplet: GameState = {
+      ...state,
+      players: state.players.map((p) => (p.seat === kanSeat ? { ...p, hand: (() => { const h = [...p.hand]; h[tile] = 3; return h; })() } : p)),
+    };
+    const afterDiscard = discardTile(withTriplet, tile);
+    expect(canCallKanOn(afterDiscard, kanSeat)).toBe(true);
+
+    const kanned = callMinkan(afterDiscard, kanSeat);
+    expect(kanned.players[kanSeat].melds).toEqual([{ type: 'kantsu', tiles: [tile, tile, tile, tile], isOpen: true }]);
+    expect(kanned.players[kanSeat].hand[tile]).toBe(0);
+    expect(kanned.lastDraw).toBeDefined();
+    expect(kanned.doraIndicators.length).toBe(2);
+    expect(kanned.phase).toBe('discard');
+    expect(kanned.currentSeat).toBe(kanSeat);
+  });
+
+  it('안깡: 자기 차례에 4장을 모아 선언하면 손패에서 빠지고 보충패를 뽑는다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(24) });
+    const dealerSeat = state.dealerSeat;
+    const tile = idx('9m');
+    const rigged: GameState = {
+      ...state,
+      players: state.players.map((p) => {
+        if (p.seat !== dealerSeat) return p;
+        const h = [...p.hand];
+        h[tile] = 4;
+        return { ...p, hand: h };
+      }),
+    };
+    const ankanned = callAnkan(rigged, tile);
+    expect(ankanned.players[dealerSeat].melds).toEqual([
+      { type: 'kantsu', tiles: [tile, tile, tile, tile], isOpen: false },
+    ]);
+    expect(ankanned.players[dealerSeat].hand[tile]).toBe(0);
+    expect(ankanned.doraIndicators.length).toBe(2);
+    expect(ankanned.currentSeat).toBe(dealerSeat);
+    expect(ankanned.phase).toBe('discard');
+  });
+
+  it('산이 다 떨어진 상태에서 깡을 하면 유국 처리된다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(25) });
+    const dealerSeat = state.dealerSeat;
+    const tile = idx('9m');
+    const rigged: GameState = {
+      ...state,
+      wall: [],
+      players: state.players.map((p) => {
+        if (p.seat !== dealerSeat) return p;
+        const h = [...p.hand];
+        h[tile] = 4;
+        return { ...p, hand: h };
+      }),
+    };
+    const result = callAnkan(rigged, tile);
+    expect(result.phase).toBe('ended');
+    expect(result.result).toEqual({ type: 'draw' });
   });
 });
 

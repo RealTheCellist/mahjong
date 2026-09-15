@@ -1,4 +1,4 @@
-import type { Hand34 } from '../engine/types';
+import type { Hand34, Meld } from '../engine/types';
 import type { ScoreResult } from '../engine/scoring';
 
 export type AiLevel = 'easy' | 'normal' | 'hard';
@@ -8,6 +8,8 @@ export interface PlayerState {
   isHuman: boolean;
   aiLevel?: AiLevel;
   hand: Hand34;
+  /** 치/퐁/깡으로 확정된 멘츠 (hand에는 포함되지 않는다) */
+  melds: Meld[];
   discards: number[];
   isRiichi: boolean;
   score: number;

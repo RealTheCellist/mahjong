@@ -2,8 +2,9 @@ import type { Hand34 } from '../engine/types';
 import { createEmptyHand34 } from '../engine/types';
 import { gradeDiscardChoice, type DiscardGrade } from '../engine/grading';
 import { calculateShanten } from '../engine/shanten';
+import { canPon, canMinkan, getChiOptions, findAnkanCandidates } from '../engine/calls';
 import type { GameState, PlayerState, AiLevel } from './types';
-import { isTenpaiAfterDiscard } from './gameEngine';
+import { isTenpaiAfterDiscard, bumpHand } from './gameEngine';
 
 /**
  * 난이도별 등급 가중치. 인덱스는 [S, A, B] 확률이며 합은 1이 되어야 한다.
@@ -121,4 +122,85 @@ export function decideAiRon(): boolean {
 /** 참고용: 현재 손패의 샨텐수 (AI 판단 로직 디버깅/표시에 사용 가능) */
 export function aiShanten(hand: Hand34): number {
   return calculateShanten(hand);
+}
+
+/**
+ * 콜(치/퐁/깡)로 손을 열지 판단하는 공통 기준.
+ * 샨텐이 확실히 좋아지면 항상 부르고, 그대로면 난이도별 확률로,
+ * 오히려 나빠지면 초급자만 가끔 실수로 부른다(사람다운 판단 흉내).
+ */
+function shouldCall(level: AiLevel, shantenBefore: number, shantenAfter: number, rng: () => number): boolean {
+  if (shantenAfter < shantenBefore) return true;
+  if (shantenAfter === shantenBefore) return rng() < CALL_EVEN_IF_NEUTRAL[level];
+  return level === 'easy' && rng() < 0.15;
+}
+
+const CALL_EVEN_IF_NEUTRAL: Record<AiLevel, number> = { hard: 0.3, normal: 0.55, easy: 0.8 };
+const MINKAN_WILLINGNESS: Record<AiLevel, number> = { hard: 0.4, normal: 0.5, easy: 0.65 };
+const ANKAN_WILLINGNESS: Record<AiLevel, number> = { hard: 0.9, normal: 0.75, easy: 0.5 };
+
+/** seat가 방금 버려진 패로 퐁을 부를지 결정한다 */
+export function decideAiPon(state: GameState, seat: number, rng: () => number = Math.random): boolean {
+  if (!state.lastDiscard) return false;
+  const player = state.players[seat];
+  if (player.isRiichi) return false;
+  const tile = state.lastDiscard.tile;
+  if (!canPon(player.hand, tile)) return false;
+
+  const shantenBefore = calculateShanten(player.hand);
+  const afterHand = bumpHand(player.hand, tile, -2);
+  const shantenAfter = calculateShanten(afterHand);
+  return shouldCall(player.aiLevel ?? 'normal', shantenBefore, shantenAfter, rng);
+}
+
+/** seat가 방금 버려진 패로 치를 부를지 결정한다. 부른다면 사용할 손패 두 장을 반환한다 */
+export function decideAiChi(
+  state: GameState,
+  seat: number,
+  rng: () => number = Math.random,
+): [number, number] | null {
+  if (!state.lastDiscard) return null;
+  const player = state.players[seat];
+  if (player.isRiichi) return null;
+
+  const options = getChiOptions(player.hand, state.lastDiscard.tile);
+  if (options.length === 0) return null;
+
+  const shantenBefore = calculateShanten(player.hand);
+  let best: { opt: [number, number]; shanten: number } | null = null;
+  for (const opt of options) {
+    const afterHand = bumpHand(bumpHand(player.hand, opt[0], -1), opt[1], -1);
+    const shanten = calculateShanten(afterHand);
+    if (!best || shanten < best.shanten) best = { opt, shanten };
+  }
+  if (!best) return null;
+  return shouldCall(player.aiLevel ?? 'normal', shantenBefore, best.shanten, rng) ? best.opt : null;
+}
+
+/** seat가 방금 버려진 패로 밍깡을 부를지 결정한다 */
+export function decideAiKan(state: GameState, seat: number, rng: () => number = Math.random): boolean {
+  if (!state.lastDiscard) return false;
+  const player = state.players[seat];
+  if (player.isRiichi) return false;
+  const tile = state.lastDiscard.tile;
+  if (!canMinkan(player.hand, tile)) return false;
+
+  const shantenBefore = calculateShanten(player.hand);
+  const afterHand = bumpHand(player.hand, tile, -3);
+  const shantenAfter = calculateShanten(afterHand);
+  if (shantenAfter > shantenBefore) return false;
+  return rng() < MINKAN_WILLINGNESS[player.aiLevel ?? 'normal'];
+}
+
+/**
+ * 자기 차례에 안깡을 선언할지 결정한다. 부른다면 안깡할 패를,
+ * 아니면 null을 반환한다. 리치 중에는 손패 형태를 바꾸지 않도록 안깡하지 않는다.
+ */
+export function decideAiAnkan(state: GameState, seat: number, rng: () => number = Math.random): number | null {
+  const player = state.players[seat];
+  if (player.isRiichi) return null;
+  const candidates = findAnkanCandidates(player.hand);
+  if (candidates.length === 0) return null;
+  if (rng() >= ANKAN_WILLINGNESS[player.aiLevel ?? 'normal']) return null;
+  return candidates[0];
 }

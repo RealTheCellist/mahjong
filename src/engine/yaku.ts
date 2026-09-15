@@ -19,9 +19,14 @@ export interface YakuResult {
 }
 
 export interface HandSet {
-  type: 'shuntsu' | 'kotsu';
+  type: 'shuntsu' | 'kotsu' | 'kantsu';
   tiles: number[];
   isOpen: boolean;
+}
+
+/** toitoi/역패 판정에서 커츠와 동일하게 취급되는 멘츠 타입(깡 포함) */
+function isTripletLike(setType: HandSet['type']): boolean {
+  return setType === 'kotsu' || setType === 'kantsu';
 }
 
 export interface CompleteDecomposition {
@@ -155,7 +160,7 @@ function isYakuhaiTile(tileIndex: number, context: YakuContext): boolean {
 
 function evaluateDecomposition(decomp: CompleteDecomposition, context: YakuContext): YakuResult[] {
   const openMelds = (context.melds ?? []).map<HandSet>((m) => ({
-    type: m.type === 'kotsu' || m.type === 'kantsu' ? 'kotsu' : 'shuntsu',
+    type: m.type,
     tiles: m.tiles,
     isOpen: m.isOpen,
   }));
@@ -181,7 +186,7 @@ function evaluateDecomposition(decomp: CompleteDecomposition, context: YakuConte
   }
 
   for (const set of allSets) {
-    if (set.type !== 'kotsu') continue;
+    if (!isTripletLike(set.type)) continue;
     const tile = set.tiles[0];
     const { suit, value } = tileSuitAndValue(tile);
     if (suit === 'z' && value >= 5) add('yakuhai_dragon', '역패(삼원패)');
@@ -206,7 +211,7 @@ function evaluateDecomposition(decomp: CompleteDecomposition, context: YakuConte
     }
   }
 
-  if (allSets.every((s) => s.type === 'kotsu')) add('toitoi', '또이또이');
+  if (allSets.every((s) => isTripletLike(s.type))) add('toitoi', '또이또이');
 
   const suitsUsed = new Set(allTiles.map((t) => tileSuitAndValue(t).suit).filter((s) => s !== 'z'));
   const hasHonor = allTiles.some((t) => tileSuitAndValue(t).suit === 'z');
@@ -235,7 +240,7 @@ export function getWinningHand(hand: Hand34, context: YakuContext): WinningHand 
   }
 
   const openMelds = (context.melds ?? []).map<HandSet>((m) => ({
-    type: m.type === 'kotsu' || m.type === 'kantsu' ? 'kotsu' : 'shuntsu',
+    type: m.type,
     tiles: m.tiles,
     isOpen: m.isOpen,
   }));
