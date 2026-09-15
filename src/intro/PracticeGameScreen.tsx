@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { AppBrand } from '../components/AppBrand';
 import { HandView } from '../components/HandView';
 import { Tile } from '../components/Tile';
@@ -29,7 +29,7 @@ import {
   decideAiKan,
   decideAiAnkan,
 } from '../game/aiPlayer';
-import type { AiLevel, GameState } from '../game/types';
+import type { AiLevel, GameState, PlayerState } from '../game/types';
 import type { Meld } from '../engine/types';
 import { tileIndexToName } from '../engine/tileCodec';
 import { findAnkanCandidates } from '../engine/calls';
@@ -41,8 +41,21 @@ const SEAT_LABELS = ['나', '오른쪽', '맞은편', '왼쪽'];
 const WIND_NAMES: Record<number, string> = { 27: '동', 28: '남', 29: '서', 30: '북' };
 const LEVEL_LABELS: Record<AiLevel, string> = { easy: '초급', normal: '중급', hard: '고급' };
 
+// 천봉(天鳳)류의 플랫한 다크 그레이 테이블 배색 — 그림 에셋 없이도 "탁자" 느낌을 주기 위한 단색 팔레트
+const FELT_BG = '#2b2b2e';
+const FELT_BORDER = '#1a1a1c';
+const FELT_TEXT = '#eef0f2';
+const ACCENT = '#ffb020';
+
 function seatOffset(seat: number): number {
   return (seat - HUMAN_SEAT + 4) % 4;
+}
+
+/** 버림패를 실제 마작 탁자처럼 6장씩 줄바꿈해 늘어놓는다(가와/河) */
+function pondRows(discards: number[]): number[][] {
+  const rows: number[][] = [];
+  for (let i = 0; i < discards.length; i += 6) rows.push(discards.slice(i, i + 6));
+  return rows;
 }
 
 type PendingReaction =
@@ -50,12 +63,60 @@ type PendingReaction =
   | { type: 'call'; seat: number; canPon: boolean; canKan: boolean }
   | { type: 'chi'; seat: number; options: [number, number][] };
 
-function MeldView({ meld }: { meld: Meld }) {
+function MeldView({ meld, width = 20 }: { meld: Meld; width?: number }) {
   return (
     <div style={{ display: 'flex', gap: 1 }}>
       {meld.tiles.map((t, i) => (
-        <Tile key={i} index={t} width={20} />
+        <Tile key={i} index={t} width={width} />
       ))}
+    </div>
+  );
+}
+
+function Pond({ discards, tileWidth }: { discards: number[]; tileWidth: number }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {pondRows(discards).map((row, i) => (
+        <div key={i} style={{ display: 'flex', gap: 2 }}>
+          {row.map((t, j) => (
+            <Tile key={j} index={t} width={tileWidth} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const opponentBoxStyle = (active: boolean): CSSProperties => ({
+  border: active ? `2px solid ${ACCENT}` : '1px solid rgba(255,255,255,0.2)',
+  borderRadius: 8,
+  padding: '6px 8px',
+  background: 'rgba(0,0,0,0.18)',
+  color: FELT_TEXT,
+  fontSize: 11,
+  minWidth: 0,
+  width: '100%',
+  boxSizing: 'border-box',
+});
+
+function OpponentCard({ player, isDealer, active }: { player: PlayerState; isDealer: boolean; active: boolean }) {
+  return (
+    <div style={opponentBoxStyle(active)}>
+      <div style={{ fontWeight: 600, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {isDealer ? '東 ' : ''}
+        {SEAT_LABELS[seatOffset(player.seat)]} ({LEVEL_LABELS[player.aiLevel as AiLevel]})
+      </div>
+      <div style={{ whiteSpace: 'nowrap', marginBottom: 4 }}>
+        {player.score}점{player.isRiichi && <span style={{ color: '#ff6b6b' }}> · 리치</span>}
+      </div>
+      {player.melds.length > 0 && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+          {player.melds.map((m, i) => (
+            <MeldView key={i} meld={m} width={16} />
+          ))}
+        </div>
+      )}
+      <Pond discards={player.discards} tileWidth={14} />
     </div>
   );
 }
@@ -195,6 +256,9 @@ export function PracticeGameScreen() {
   }
 
   const human = state.players[HUMAN_SEAT];
+  const rightOpponent = state.players[(HUMAN_SEAT + 1) % 4];
+  const acrossOpponent = state.players[(HUMAN_SEAT + 2) % 4];
+  const leftOpponent = state.players[(HUMAN_SEAT + 3) % 4];
 
   const handleSelectDiscard = (tileIndex: number) => {
     setSelectedDiscard(tileIndex);
@@ -249,174 +313,207 @@ export function PracticeGameScreen() {
   const ankanCandidates =
     state.phase === 'discard' && state.currentSeat === HUMAN_SEAT ? findAnkanCandidates(human.hand) : [];
 
+  const overlayActive = pendingReaction !== null;
+
   return (
-    <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+    <section style={{ padding: '16px 16px 32px', maxWidth: 720, margin: '0 auto' }}>
       <AppBrand>{INTRO_APP_NAME}</AppBrand>
       <h1>연습 게임</h1>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div>
-          {WIND_NAMES[state.roundWind]}장 · 남은 패 {state.wall.length}장
-          {state.riichiSticks > 0 && ` · 공탁 ${state.riichiSticks * 1000}점`}
+      <div
+        style={{
+          position: 'relative',
+          background: FELT_BG,
+          border: `6px solid ${FELT_BORDER}`,
+          borderRadius: 12,
+          padding: 12,
+          display: 'grid',
+          gridTemplateColumns: '1fr 1.3fr 1fr',
+          gridTemplateAreas: `"left top right" "left center right" "bottom bottom bottom"`,
+          gap: 8,
+        }}
+      >
+        <div style={{ gridArea: 'top', display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+          <OpponentCard player={acrossOpponent} isDealer={acrossOpponent.seat === state.dealerSeat} active={state.currentSeat === acrossOpponent.seat} />
         </div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          도라 표시:
-          {state.doraIndicators.map((t, i) => (
-            <Tile key={i} index={t} width={32} />
-          ))}
+        <div style={{ gridArea: 'left', display: 'flex', alignItems: 'center', minWidth: 0 }}>
+          <OpponentCard player={leftOpponent} isDealer={leftOpponent.seat === state.dealerSeat} active={state.currentSeat === leftOpponent.seat} />
         </div>
-      </div>
+        <div style={{ gridArea: 'right', display: 'flex', alignItems: 'center', minWidth: 0 }}>
+          <OpponentCard player={rightOpponent} isDealer={rightOpponent.seat === state.dealerSeat} active={state.currentSeat === rightOpponent.seat} />
+        </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-        {state.players
-          .filter((p) => p.seat !== HUMAN_SEAT)
-          .map((p) => (
-            <div
-              key={p.seat}
-              style={{
-                border: state.currentSeat === p.seat ? '2px solid #f39c12' : '1px solid var(--border)',
-                borderRadius: 8,
-                padding: 8,
-                fontSize: 13,
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>
-                {SEAT_LABELS[seatOffset(p.seat)]} ({LEVEL_LABELS[p.aiLevel as AiLevel]})
-                {p.seat === state.dealerSeat ? ' · 딜러' : ''}
-              </div>
-              <div>점수: {p.score}</div>
-              <div>{p.isRiichi ? '리치 중' : ''}</div>
-              {p.melds.length > 0 && (
-                <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                  {p.melds.map((m, i) => (
-                    <MeldView key={i} meld={m} />
-                  ))}
-                </div>
-              )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginTop: 4 }}>
-                {p.discards.map((t, i) => (
-                  <Tile key={i} index={t} width={18} />
+        <div
+          style={{
+            gridArea: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: FELT_TEXT,
+            background: 'rgba(0,0,0,0.25)',
+            borderRadius: 8,
+            padding: 10,
+            fontSize: 13,
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontWeight: 700, fontSize: 15 }}>{WIND_NAMES[state.roundWind]}장</div>
+          <div style={{ margin: '4px 0', display: 'flex', gap: 4 }}>
+            {state.doraIndicators.map((t, i) => (
+              <Tile key={i} index={t} width={24} />
+            ))}
+          </div>
+          <div>산 {state.wall.length}장</div>
+          {state.riichiSticks > 0 && <div style={{ color: ACCENT }}>공탁 {state.riichiSticks * 1000}점</div>}
+        </div>
+
+        <div
+          style={{
+            gridArea: 'bottom',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            marginTop: 4,
+          }}
+        >
+          <div style={{ color: FELT_TEXT, fontSize: 12 }}>
+            <div style={{ fontWeight: 700 }}>
+              나 ({state.currentSeat === HUMAN_SEAT ? '내 차례' : '대기 중'})
+              {human.seat === state.dealerSeat ? ' 東' : ''} · {human.score}점
+              {human.isRiichi && <span style={{ color: '#ff6b6b' }}> · 리치</span>}
+            </div>
+            {human.melds.length > 0 && (
+              <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                {human.melds.map((m, i) => (
+                  <MeldView key={i} meld={m} width={18} />
                 ))}
               </div>
-            </div>
-          ))}
-      </div>
-
-      <div style={{ marginBottom: 8 }}>
-        내 점수: {human.score} {human.isRiichi ? '· 리치 중' : ''}
-        {human.seat === state.dealerSeat ? ' · 딜러' : ''}
-        {' · 현재 차례: '}
-        {state.currentSeat === HUMAN_SEAT ? '나' : SEAT_LABELS[seatOffset(state.currentSeat)]}
-      </div>
-
-      {human.melds.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-          내 멘츠:
-          {human.melds.map((m, i) => (
-            <MeldView key={i} meld={m} />
-          ))}
+            )}
+          </div>
+          <Pond discards={human.discards} tileWidth={16} />
         </div>
-      )}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 8 }}>
-        내 버림패:
-        {human.discards.map((t, i) => (
-          <Tile key={i} index={t} width={22} />
-        ))}
-      </div>
-
-      <HandView
-        key={state.turnCount}
-        hand={human.hand}
-        interactive={state.phase === 'discard' && state.currentSeat === HUMAN_SEAT && pendingReaction === null}
-        onSelectDiscard={handleSelectDiscard}
-      />
-
-      {state.phase === 'discard' && state.currentSeat === HUMAN_SEAT && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-          {canTsumo(state) && (
-            <button type="button" onClick={handleHumanTsumo}>
-              쯔모!
-            </button>
-          )}
-          {ankanCandidates.map((tile) => (
-            <button key={tile} type="button" onClick={() => handleHumanAnkan(tile)}>
-              {tileIndexToName(tile)} 안깡
-            </button>
-          ))}
-          {selectedDiscard !== null && (
-            <>
-              <button type="button" onClick={() => confirmDiscard(false)}>
-                {tileIndexToName(selectedDiscard)} 버리기
-              </button>
-              {canRiichiOnSelected && (
-                <button type="button" onClick={() => confirmDiscard(true)}>
-                  리치 선언하고 버리기
-                </button>
+        {overlayActive && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(0,0,0,0.55)',
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 16,
+            }}
+          >
+            <div
+              style={{
+                background: '#1c1c22',
+                color: '#fff',
+                borderRadius: 10,
+                padding: 16,
+                minWidth: 240,
+                textAlign: 'center',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              }}
+            >
+              {pendingReaction?.type === 'ron' && (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    {SEAT_LABELS[seatOffset(state.lastDiscard?.seat ?? 0)]}가 버린{' '}
+                    {state.lastDiscard ? tileIndexToName(state.lastDiscard.tile) : ''}로 론 할 수 있습니다.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                    <button type="button" onClick={handleHumanRon}>
+                      론!
+                    </button>
+                    <button type="button" onClick={handleSkipReaction}>
+                      넘기기
+                    </button>
+                  </div>
+                </>
               )}
-            </>
-          )}
-        </div>
-      )}
+              {pendingReaction?.type === 'call' && (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    {SEAT_LABELS[seatOffset(state.lastDiscard?.seat ?? 0)]}가 버린{' '}
+                    {state.lastDiscard ? tileIndexToName(state.lastDiscard.tile) : ''}(으)로 울 수 있습니다.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                    {pendingReaction.canKan && (
+                      <button type="button" onClick={handleHumanCallKan}>
+                        깡!
+                      </button>
+                    )}
+                    {pendingReaction.canPon && (
+                      <button type="button" onClick={handleHumanCallPon}>
+                        퐁!
+                      </button>
+                    )}
+                    <button type="button" onClick={handleSkipReaction}>
+                      넘기기
+                    </button>
+                  </div>
+                </>
+              )}
+              {pendingReaction?.type === 'chi' && (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    {state.lastDiscard ? tileIndexToName(state.lastDiscard.tile) : ''}(으)로 치를 부를 수 있습니다.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {pendingReaction.options.map((option, i) => (
+                      <button key={i} type="button" onClick={() => handleHumanCallChi(option)}>
+                        {tileIndexToName(option[0])}·{tileIndexToName(option[1])}로 치
+                      </button>
+                    ))}
+                    <button type="button" onClick={handleSkipReaction}>
+                      넘기기
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
-      {pendingReaction?.type === 'ron' && (
-        <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}>
-          <div>
-            {SEAT_LABELS[seatOffset(state.lastDiscard?.seat ?? 0)]}가 버린{' '}
-            {state.lastDiscard ? tileIndexToName(state.lastDiscard.tile) : ''}로 론 할 수 있습니다.
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button type="button" onClick={handleHumanRon}>
-              론!
-            </button>
-            <button type="button" onClick={handleSkipReaction}>
-              넘기기
-            </button>
-          </div>
-        </div>
-      )}
+      <div style={{ marginTop: 12 }}>
+        <HandView
+          key={state.turnCount}
+          hand={human.hand}
+          interactive={state.phase === 'discard' && state.currentSeat === HUMAN_SEAT && pendingReaction === null}
+          onSelectDiscard={handleSelectDiscard}
+        />
 
-      {pendingReaction?.type === 'call' && (
-        <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}>
-          <div>
-            {SEAT_LABELS[seatOffset(state.lastDiscard?.seat ?? 0)]}가 버린{' '}
-            {state.lastDiscard ? tileIndexToName(state.lastDiscard.tile) : ''}(으)로 울 수 있습니다.
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            {pendingReaction.canKan && (
-              <button type="button" onClick={handleHumanCallKan}>
-                깡!
-              </button>
-            )}
-            {pendingReaction.canPon && (
-              <button type="button" onClick={handleHumanCallPon}>
-                퐁!
-              </button>
-            )}
-            <button type="button" onClick={handleSkipReaction}>
-              넘기기
-            </button>
-          </div>
-        </div>
-      )}
-
-      {pendingReaction?.type === 'chi' && (
-        <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}>
-          <div>
-            {state.lastDiscard ? tileIndexToName(state.lastDiscard.tile) : ''}(으)로 치를 부를 수 있습니다.
-          </div>
+        {state.phase === 'discard' && state.currentSeat === HUMAN_SEAT && (
           <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-            {pendingReaction.options.map((option, i) => (
-              <button key={i} type="button" onClick={() => handleHumanCallChi(option)}>
-                {tileIndexToName(option[0])}·{tileIndexToName(option[1])}로 치
+            {canTsumo(state) && (
+              <button type="button" onClick={handleHumanTsumo}>
+                쯔모!
+              </button>
+            )}
+            {ankanCandidates.map((tile) => (
+              <button key={tile} type="button" onClick={() => handleHumanAnkan(tile)}>
+                {tileIndexToName(tile)} 안깡
               </button>
             ))}
-            <button type="button" onClick={handleSkipReaction}>
-              넘기기
-            </button>
+            {selectedDiscard !== null && (
+              <>
+                <button type="button" onClick={() => confirmDiscard(false)}>
+                  {tileIndexToName(selectedDiscard)} 버리기
+                </button>
+                {canRiichiOnSelected && (
+                  <button type="button" onClick={() => confirmDiscard(true)}>
+                    리치 선언하고 버리기
+                  </button>
+                )}
+              </>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {state.phase === 'ended' && state.result && (
         <div style={{ marginTop: 16, padding: 16, border: '1px solid var(--border)', borderRadius: 8 }}>
