@@ -26,11 +26,30 @@ npm run test
 - 정방향 체커, 역 카드 사전, 조건 비교 테이블, 역방향 탐색기
 - 손패 뷰어, 이론학습, 본훈련, 단원평가, 오답노트, 종합응용
 
-## 새로 만든 것 (RN 전용)
+## 패 이미지 (실물 수준)
 
-- `src/components/Tile.tsx`, `HandView.tsx`: `react-native-svg` 기반 최소 패
-  렌더러. 웹 앱이 쓰는 `riichi-mahjong-tiles` 라이브러리는 웹 SVG(DOM)
-  전용이라 RN에서 쓸 수 없어서, 숫자+종류만 표시하는 단순한 버전입니다.
+웹 앱이 쓰는 `riichi-mahjong-tiles`는 웹 SVG(DOM) 전용이라 RN에서 그대로
+쓸 수 없었지만, 숫자만 있는 단순 버전 대신 **원본 벡터 아트를 그대로
+가져오는 코드모드**를 작성해서 실물 수준 패 이미지를 그대로 구현했습니다.
+
+- `scripts/convert-tile.mjs`: `@babel/parser`+`traverse`+`generator`로 만든
+  코드모드. riichi-mahjong-tiles의 웹 SVG 소스(`<svg>`, `<circle>`,
+  `style={{fill:...}}` 등)를 react-native-svg 컴포넌트(`<Svg>`, `<Circle>`,
+  `fill=` 같은 직접 prop)로 변환한다. `xmlns`/`xmlnsXlink` 등 RN에 불필요한
+  속성도 제거한다.
+- `scripts/convert-all-tiles.mjs`: 만수/통수/삭수 1~9 + 자패 7종, 총 34개
+  타일을 일괄 변환해 `src/tiles/`에 저장.
+- `src/ui/tileComponents.ts`: index(0~33) -> 변환된 타일 컴포넌트 매핑.
+  웹 앱의 `tileComponents.ts`와 동일한 구조.
+- 웹 앱과 완전히 동일한 벡터 아트(만수 붓글씨체, 통수 원형 무늬, 삭수
+  대나무, 자패 한자)가 RN에서도 그대로 렌더링되는 것을 확인했습니다.
+
+원본 라이브러리(`riichi-mahjong-tiles`)가 업데이트되면
+`node scripts/convert-all-tiles.mjs`를 다시 실행해서 `src/tiles/`를
+갱신하면 됩니다.
+
+## 그 외 새로 만든 것 (RN 전용)
+
 - `src/components/ui.tsx`: Screen/Heading/Body/Button/Card 등 화면마다
   반복되는 레이아웃을 공용 컴포넌트로 정리.
 - 웹 앱의 `<select>`(역방향 탐색기), `<table>`(조건 비교 테이블), `<input>`
@@ -51,8 +70,6 @@ npm start        # Expo Go 앱으로 QR 스캔해서 실제 폰에서 확인
 
 ## 남은 작업
 
-- 패 아트를 실물 수준으로 개선 (react-native-svg로 다시 그리거나 이미지
-  에셋 사용 — 지금은 숫자+색만 있는 단순 버전)
 - `progress/store.ts`가 지금은 RN에 `localStorage`가 없어 인메모리 폴백으로
   동작함 — 앱을 껐다 켜면 진행률이 초기화됨. `AsyncStorage` 연동 필요.
 - 실제 기기(Expo Go)에서의 터치 인터랙션 확인 (이 세션은 시뮬레이터/실기기
