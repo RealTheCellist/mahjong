@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { THEORY_SLIDES } from './theorySlides';
+import { AppBrand } from '../components/AppBrand';
+import { NANIKIRU_APP_NAME } from '../branding';
 
 export function TheorySlidesScreen() {
   const [index, setIndex] = useState(0);
@@ -9,6 +11,7 @@ export function TheorySlidesScreen() {
 
   return (
     <section style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
+      <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <h1>이론학습</h1>
       <p style={{ color: 'var(--text)' }}>
         {index + 1} / {THEORY_SLIDES.length}

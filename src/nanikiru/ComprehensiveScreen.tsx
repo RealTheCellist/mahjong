@@ -3,6 +3,8 @@ import { HandView } from '../components/HandView';
 import { tileIndexToName } from '../engine/tileCodec';
 import { generateNanikiruProblem } from '../problems/generator';
 import type { GradedAnswer, Problem } from '../problems/types';
+import { AppBrand } from '../components/AppBrand';
+import { NANIKIRU_APP_NAME } from '../branding';
 
 const CHAPTER_ID = '3-1';
 
@@ -34,6 +36,7 @@ export function ComprehensiveScreen() {
 
   return (
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+      <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <h1>종합응용</h1>
       <p>순서·도라·자리바람까지 고려한 실전형 문제입니다.</p>
 

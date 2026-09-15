@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { HandView } from '../components/HandView';
 import { checkYaku, type YakuResult } from '../engine/yaku';
 import { generateRandomWinningHand } from '../problems/generator';
+import { AppBrand } from '../components/AppBrand';
+import { INTRO_APP_NAME } from '../branding';
 
 export function ForwardCheckerScreen() {
   const [round, setRound] = useState(0);
@@ -17,6 +19,7 @@ export function ForwardCheckerScreen() {
 
   return (
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+      <AppBrand>{INTRO_APP_NAME}</AppBrand>
       <h1>정방향 체커</h1>
       <p>무작위로 완성된 손패에서 어떤 역이 성립하는지 확인해보세요.</p>
 

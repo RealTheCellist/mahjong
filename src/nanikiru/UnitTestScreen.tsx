@@ -5,6 +5,8 @@ import { generateNanikiruProblem } from '../problems/generator';
 import type { AnswerGrade, Problem } from '../problems/types';
 import { markUnitTestResult } from '../progress/store';
 import { FIXED_PROBLEMS } from './fixedProblems';
+import { AppBrand } from '../components/AppBrand';
+import { NANIKIRU_APP_NAME } from '../branding';
 
 const CHAPTER_ID = '2-1';
 const TOTAL_PROBLEMS = 10;
@@ -60,6 +62,7 @@ export function UnitTestScreen() {
     const passed = correctCount / TOTAL_PROBLEMS >= PASS_RATIO;
     return (
       <section style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
+        <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
         <h1>단원평가 결과</h1>
         <p style={{ fontSize: 20, fontWeight: 700, color: passed ? '#1e8449' : '#c0392b' }}>
           {passed ? '합격!' : '불합격'}
@@ -77,6 +80,7 @@ export function UnitTestScreen() {
 
   return (
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+      <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <h1>단원평가</h1>
       <p style={{ color: 'var(--text)' }}>
         {index + 1} / {TOTAL_PROBLEMS} 문제 (답변 완료: {answeredCount})

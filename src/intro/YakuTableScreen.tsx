@@ -1,5 +1,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { YAKU_CATALOG } from './yakuCatalog';
+import { AppBrand } from '../components/AppBrand';
+import { INTRO_APP_NAME } from '../branding';
 
 type SortField = 'name' | 'han' | 'menzen';
 type SortDir = 'asc' | 'desc';
@@ -42,6 +44,7 @@ export function YakuTableScreen() {
 
   return (
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+      <AppBrand>{INTRO_APP_NAME}</AppBrand>
       <h1>조건 비교 테이블</h1>
       <p>역 이름으로 검색하거나, 열 제목을 눌러 정렬해보세요.</p>
 

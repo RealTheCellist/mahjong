@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Tile } from '../components/Tile';
 import { generateShuntsuPool, isValidRun } from './missionLogic';
+import { AppBrand } from '../components/AppBrand';
+import { INTRO_APP_NAME } from '../branding';
 
 interface ShuntsuMissionProps {
   /** 이 미션을 처음으로 클리어한 순간 한 번 호출된다 */
@@ -52,6 +54,7 @@ export function ShuntsuMission({ onComplete }: ShuntsuMissionProps = {}) {
 
   return (
     <section style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
+      <AppBrand>{INTRO_APP_NAME}</AppBrand>
       <h2>미션: 슌쯔 만들기</h2>
       <p>연속된 숫자 3장을 순서대로 골라 순쯔(런)를 완성해보세요. ({completedRuns}/3 완성)</p>
 

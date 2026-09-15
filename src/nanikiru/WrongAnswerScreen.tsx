@@ -2,6 +2,8 @@ import { useSyncExternalStore } from 'react';
 import { HandView } from '../components/HandView';
 import { tileIndexToName } from '../engine/tileCodec';
 import { clearWrongAnswers, getWrongAnswers, subscribeWrongAnswers } from './wrongAnswerQueue';
+import { AppBrand } from '../components/AppBrand';
+import { NANIKIRU_APP_NAME } from '../branding';
 
 export function WrongAnswerScreen() {
   const entries = useSyncExternalStore(subscribeWrongAnswers, getWrongAnswers);
@@ -16,6 +18,7 @@ export function WrongAnswerScreen() {
 
   return (
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+      <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <h1>오답노트</h1>
       <p>본훈련에서 S등급이 아닌 버림을 선택하면 여기에 쌓입니다.</p>
 

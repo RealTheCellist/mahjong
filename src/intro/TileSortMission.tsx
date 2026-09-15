@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Tile } from '../components/Tile';
+import { AppBrand } from '../components/AppBrand';
+import { INTRO_APP_NAME } from '../branding';
 import { checkTileSortAnswer, generateTileSortPool, pickRandomSuit } from './missionLogic';
 
 const SUIT_LABEL: Record<string, string> = { m: '만수', p: '통수', s: '삭수', z: '자패' };
@@ -41,6 +43,7 @@ export function TileSortMission({ onComplete }: TileSortMissionProps = {}) {
 
   return (
     <section style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
+      <AppBrand>{INTRO_APP_NAME}</AppBrand>
       <h2>미션: 패 종류 골라내기</h2>
       <p>
         <strong>{SUIT_LABEL[targetSuit]}</strong> 패만 모두 골라보세요.

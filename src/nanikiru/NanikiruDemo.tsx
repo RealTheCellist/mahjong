@@ -4,6 +4,8 @@ import { calculateShanten } from '../engine/shanten';
 import { calculateUkeire } from '../engine/ukeire';
 import { tileIndexToName, tileNamesToHand34 } from '../engine/tileCodec';
 import type { Hand34 } from '../engine/types';
+import { AppBrand } from '../components/AppBrand';
+import { NANIKIRU_APP_NAME } from '../branding';
 
 // 1샨텐 예시 손패 (14장)
 const SAMPLE_HAND: Hand34 = tileNamesToHand34([
@@ -27,6 +29,7 @@ export function NanikiruDemo() {
 
   return (
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+      <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <h1>손패 뷰어</h1>
       <p>패를 탭해서 버릴 패를 선택해보세요.</p>
 

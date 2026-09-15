@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { loadAllChapterProgress } from '../progress/store';
+import { INTRO_APP_NAME, NANIKIRU_APP_NAME } from '../branding';
 
 const DEMO_CHAPTERS = ['1-1', '1-2', '2-1'];
 
@@ -28,7 +29,7 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
 
   return (
     <section style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
-      <h1>마작 입문 — 홈</h1>
+      <h1>{INTRO_APP_NAME}</h1>
 
       {allMissionsCompleted && (
         <div
@@ -94,7 +95,7 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
         </button>
       </div>
 
-      <h2 style={{ fontSize: 18, marginTop: 24 }}>다른 앱</h2>
+      <h2 style={{ fontSize: 18, marginTop: 24 }}>{NANIKIRU_APP_NAME}</h2>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button type="button" onClick={() => onNavigate('nanikiru')}>
           나니키루 손패 뷰어

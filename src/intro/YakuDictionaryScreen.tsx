@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { HandView } from '../components/HandView';
 import { YAKU_CATALOG } from './yakuCatalog';
+import { AppBrand } from '../components/AppBrand';
+import { INTRO_APP_NAME } from '../branding';
 
 export function YakuDictionaryScreen() {
   const [selectedKey, setSelectedKey] = useState(YAKU_CATALOG[0].key);
@@ -8,6 +10,7 @@ export function YakuDictionaryScreen() {
 
   return (
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+      <AppBrand>{INTRO_APP_NAME}</AppBrand>
       <h1>역 카드 사전</h1>
       <p>카드를 탭하면 조건과 예시 손패를 볼 수 있어요.</p>
 

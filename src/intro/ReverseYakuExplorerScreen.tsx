@@ -3,6 +3,8 @@ import { Tile } from '../components/Tile';
 import { expandHand34 } from '../ui/tileDisplay';
 import { tileNameToIndex } from '../engine/tileCodec';
 import { YAKU_CATALOG } from './yakuCatalog';
+import { AppBrand } from '../components/AppBrand';
+import { INTRO_APP_NAME } from '../branding';
 
 export function ReverseYakuExplorerScreen() {
   const [selectedKey, setSelectedKey] = useState(YAKU_CATALOG[0].key);
@@ -26,6 +28,7 @@ export function ReverseYakuExplorerScreen() {
 
   return (
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+      <AppBrand>{INTRO_APP_NAME}</AppBrand>
       <h1>역방향 탐색기</h1>
       <p>역을 선택하면 조건을 만족시키는 핵심 패가 강조 표시됩니다.</p>
 

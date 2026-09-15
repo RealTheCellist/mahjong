@@ -10,6 +10,8 @@ import {
 } from '../progress/store';
 import { FIXED_PROBLEMS } from './fixedProblems';
 import { addWrongAnswer } from './wrongAnswerQueue';
+import { AppBrand } from '../components/AppBrand';
+import { NANIKIRU_APP_NAME } from '../branding';
 
 const CHAPTER_ID = '2-1';
 
@@ -65,6 +67,7 @@ export function TrainingScreen() {
 
   return (
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+      <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <h1>나니키루 본훈련</h1>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
