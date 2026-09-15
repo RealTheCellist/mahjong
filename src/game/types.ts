@@ -38,5 +38,11 @@ export interface GameState {
   /** 현재 차례 플레이어가 방금 벽에서 뽑은 패 (아직 버리지 않은 상태) */
   lastDraw?: number;
   lastDiscard?: { seat: number; tile: number };
+  /**
+   * 공탁된 리치 점수(1000점 단위 개수). 실물 점봉을 따로 두지 않고
+   * 선언 시 즉시 플레이어 점수에서 차감한 뒤, 이 숫자로만 누적해 두었다가
+   * 화료자가 나오면 그 점수에 합산한다(유국이면 다음 판으로 이월된다).
+   */
+  riichiSticks: number;
   result?: WinInfo | { type: 'draw' };
 }

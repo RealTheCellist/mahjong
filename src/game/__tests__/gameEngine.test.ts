@@ -180,6 +180,50 @@ describe('canRon / applyRon', () => {
   });
 });
 
+describe('리치 공탁금(riichiSticks)', () => {
+  it('리치 선언 시 개인 점수가 아닌 공탁 카운트로 누적된다', () => {
+    const tenpaiHand = tileNamesToHand34([
+      '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s',
+    ]);
+    tenpaiHand[idx('1z')] = 1;
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(50) });
+    const dealerSeat = state.dealerSeat;
+    const rigged: GameState = {
+      ...state,
+      players: state.players.map((p) => (p.seat === dealerSeat ? { ...p, hand: tenpaiHand } : p)),
+    };
+    expect(rigged.riichiSticks).toBe(0);
+    const next = discardTile(rigged, idx('1z'), { declareRiichi: true });
+    expect(next.riichiSticks).toBe(1);
+    expect(next.players[dealerSeat].score).toBe(25000 - 1000);
+  });
+
+  it('화료자가 공탁된 리치 점수를 모두 가져가고 공탁은 0으로 초기화된다', () => {
+    const tenpaiHand = tileNamesToHand34([
+      '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s',
+    ]);
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(51) });
+    const dealerSeat = state.dealerSeat;
+    const ronSeat = (dealerSeat + 1) % 4;
+    const discardSeat = (dealerSeat + 3) % 4;
+    const winTile = idx('8s');
+    const rigged: GameState = {
+      ...state,
+      riichiSticks: 2, // 다른 두 명이 이미 리치를 선언해 공탁이 2000점 쌓여 있다고 가정
+      lastDiscard: { seat: discardSeat, tile: winTile },
+      players: state.players.map((p) => (p.seat === ronSeat ? { ...p, hand: tenpaiHand } : p)),
+    };
+    const before = rigged.players[ronSeat].score;
+    const result = applyRon(rigged, ronSeat);
+    expect(result.riichiSticks).toBe(0);
+    if (result.result?.type !== 'ron') throw new Error('ron 결과가 아닙니다');
+    const { payments } = result.result.score;
+    if (payments.type !== 'ron') throw new Error('ron 지급 타입이 아닙니다');
+    // 화료 점수(론 지급분) + 공탁 2000점이 모두 승자에게 더해진다
+    expect(result.players[ronSeat].score).toBe(before + payments.loserPays + 2000);
+  });
+});
+
 describe('콜 액션 (치/퐁/깡)', () => {
   it('손패에 2장 있으면 퐁을 부를 수 있다', () => {
     const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(20) });

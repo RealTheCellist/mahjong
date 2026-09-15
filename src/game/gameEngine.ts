@@ -74,6 +74,7 @@ export function dealGame(options: DealOptions): GameState {
     currentSeat: dealerSeat,
     turnCount: 1,
     phase: 'draw',
+    riichiSticks: 0,
   };
 
   return drawTile(state);
@@ -177,6 +178,7 @@ export function discardTile(state: GameState, tile: number, options: DiscardOpti
     currentSeat: nextSeat,
     phase: 'draw',
     turnCount: state.turnCount + 1,
+    riichiSticks: willRiichi ? state.riichiSticks + 1 : state.riichiSticks,
   };
 }
 
@@ -206,6 +208,12 @@ function applyPayments(
   });
 }
 
+/** 공탁된 리치 점수(점봉 없이 숫자로만 누적)를 화료자에게 지급한다 */
+function payoutRiichiSticks(players: PlayerState[], winnerSeat: number, riichiSticks: number): PlayerState[] {
+  if (riichiSticks === 0) return players;
+  return players.map((p) => (p.seat === winnerSeat ? { ...p, score: p.score + riichiSticks * RIICHI_STICK } : p));
+}
+
 /** 쯔모 화료를 확정한다 */
 export function applyTsumo(state: GameState): GameState {
   const winner = currentPlayer(state);
@@ -220,8 +228,18 @@ export function applyTsumo(state: GameState): GameState {
     doraIndicators: state.doraIndicators,
     melds: winner.melds,
   });
-  const players = applyPayments(state.players, winner.seat, state.dealerSeat, score);
-  return { ...state, players, phase: 'ended', result: { type: 'tsumo', winnerSeat: winner.seat, score } };
+  const players = payoutRiichiSticks(
+    applyPayments(state.players, winner.seat, state.dealerSeat, score),
+    winner.seat,
+    state.riichiSticks,
+  );
+  return {
+    ...state,
+    players,
+    phase: 'ended',
+    result: { type: 'tsumo', winnerSeat: winner.seat, score },
+    riichiSticks: 0,
+  };
 }
 
 /** ronSeat 플레이어의 론 화료를 확정한다 */
@@ -239,11 +257,16 @@ export function applyRon(state: GameState, ronSeat: number): GameState {
     doraIndicators: state.doraIndicators,
     melds: winner.melds,
   });
-  const players = applyPayments(state.players, winner.seat, state.dealerSeat, score, state.lastDiscard.seat);
+  const players = payoutRiichiSticks(
+    applyPayments(state.players, winner.seat, state.dealerSeat, score, state.lastDiscard.seat),
+    winner.seat,
+    state.riichiSticks,
+  );
   return {
     ...state,
     players,
     phase: 'ended',
+    riichiSticks: 0,
     result: { type: 'ron', winnerSeat: winner.seat, loserSeat: state.lastDiscard.seat, score },
   };
 }

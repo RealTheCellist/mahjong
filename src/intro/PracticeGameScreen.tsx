@@ -257,6 +257,7 @@ export function PracticeGameScreen() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div>
           {WIND_NAMES[state.roundWind]}장 · 남은 패 {state.wall.length}장
+          {state.riichiSticks > 0 && ` · 공탁 ${state.riichiSticks * 1000}점`}
         </div>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           도라 표시:
