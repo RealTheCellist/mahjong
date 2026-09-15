@@ -63,6 +63,22 @@ describe('calculateScore', () => {
     expect(result.totalPoints % 300).toBe(0); // 3명에게 동일 금액씩 걷으므로 300의 배수
   });
 
+  it('breakdown에 역별 판수와 도라 줄이 포함된다', () => {
+    const hand = tileNamesToHand34([
+      '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s', '8s',
+    ]);
+    const result = calculateScore(hand, {
+      winTile: idx('4p'),
+      isDealer: false,
+      isTsumo: false,
+      doraIndicators: [idx('1m')], // -> 2m이 도라, 손패에 1장
+    });
+    expect(result.doraHan).toBe(1);
+    expect(result.breakdown.some((l) => l.key === 'dora' && l.han === 1)).toBe(true);
+    const sumOfLines = result.breakdown.reduce((sum, l) => sum + l.han, 0);
+    expect(sumOfLines).toBe(result.han);
+  });
+
   it('안깡(멘젠 유지)은 부수에 반영되고 멘젠 상태를 유지한다', () => {
     const hand = tileNamesToHand34(['2m', '3m', '4m', '5p', '6p', '7p', '3s', '4s', '5s', '9s', '9s']);
     const result = calculateScore(hand, {

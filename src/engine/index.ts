@@ -21,5 +21,6 @@ export { checkYaku, getWinningHand } from './yaku';
 export type { SujiType, SafetyContext, SafetyResult } from './safety';
 export { calculateSafety } from './safety';
 export { canPon, canMinkan, canAnkan, findAnkanCandidates, getChiOptions } from './calls';
-export type { ScoreContext, ScoreResult } from './scoring';
+export { findWaits } from './waits';
+export type { ScoreContext, ScoreResult, ScoreLine } from './scoring';
 export { calculateScore, doraTileFromIndicator } from './scoring';

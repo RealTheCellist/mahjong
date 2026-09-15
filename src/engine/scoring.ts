@@ -76,14 +76,24 @@ export interface ScoreContext extends YakuContext {
   uraDoraIndicators?: number[];
 }
 
+export interface ScoreLine {
+  key: string;
+  name: string;
+  han: number;
+}
+
 export interface ScoreResult {
   yaku: YakuResult[];
+  /** 역 목록을 판수와 함께 줄 단위로 표시하기 위한 상세 내역 (도라/우라도라 포함) */
+  breakdown: ScoreLine[];
   han: number;
   fu: number;
+  doraHan: number;
+  uraDoraHan: number;
   /** 화료자가 최종적으로 받는 총점 */
   totalPoints: number;
   isDealer: boolean;
-  /** 실제 점수 이동 내역 (누가 얼마씩 지불하는지) */
+  /** 실제 점수 이동 내역(누가 얼마씩 지불하는지) */
   payments: PaymentBreakdown;
 }
 
@@ -167,5 +177,23 @@ export function calculateScore(hand: Hand34, context: ScoreContext): ScoreResult
     payments = { type: 'ron', loserPays };
   }
 
-  return { yaku: winningHand.yaku, han, fu, totalPoints, isDealer: context.isDealer, payments };
+  const breakdown: ScoreLine[] = winningHand.yaku.map((y) => ({
+    key: y.key,
+    name: y.name,
+    han: hanForYaku(y.key, winningHand.isMenzen),
+  }));
+  if (doraHan > 0) breakdown.push({ key: 'dora', name: `도라 ×${doraHan}`, han: doraHan });
+  if (uraDoraHan > 0) breakdown.push({ key: 'ura_dora', name: `뒷도라 ×${uraDoraHan}`, han: uraDoraHan });
+
+  return {
+    yaku: winningHand.yaku,
+    breakdown,
+    han,
+    fu,
+    doraHan,
+    uraDoraHan,
+    totalPoints,
+    isDealer: context.isDealer,
+    payments,
+  };
 }
