@@ -15,6 +15,12 @@ export interface PlayerState {
   score: number;
   /** 이번 판(국)에서의 자리바람 tile index (27~30) */
   seatWind: number;
+  /**
+   * 론 기회를 놓쳐서 걸린 후리텐(동첨 후리텐). 리치 중이 아니면 다음 자기 차례
+   * 드로우 때 풀리고, 리치 중이면 이번 판이 끝날 때까지 유지된다.
+   * 버림패 후리텐(자기 대기패를 스스로 버린 경우)은 별도로 매번 계산하며 이 값과 무관하다.
+   */
+  missedRonFuriten: boolean;
 }
 
 export type GamePhase = 'draw' | 'discard' | 'reaction' | 'ended';

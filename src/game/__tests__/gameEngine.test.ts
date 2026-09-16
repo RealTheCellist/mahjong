@@ -16,6 +16,8 @@ import {
   callChi,
   callMinkan,
   callAnkan,
+  isFuriten,
+  markRonDeclined,
 } from '../gameEngine';
 import { createEmptyHand34 } from '../../engine/types';
 import { tileNameToIndex, tileNamesToHand34 } from '../../engine/tileCodec';
@@ -177,6 +179,79 @@ describe('canRon / applyRon', () => {
     const dealerSeat = state.dealerSeat;
     const rigged: GameState = { ...state, lastDiscard: { seat: dealerSeat, tile: idx('1m') } };
     expect(canRon(rigged, dealerSeat)).toBe(false);
+  });
+});
+
+describe('후리텐', () => {
+  const tenpaiHand = tileNamesToHand34([
+    '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s',
+  ]);
+
+  it('자신의 대기패를 스스로 버렸으면 론을 할 수 없다(버림패 후리텐)', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(11) });
+    const dealerSeat = state.dealerSeat;
+    const ronSeat = (dealerSeat + 1) % 4;
+    const discardSeat = (dealerSeat + 3) % 4;
+    const winTile = idx('8s'); // 3s4s5s6s7s는 2s/5s/8s 삼면대기
+    const rigged: GameState = {
+      ...state,
+      lastDiscard: { seat: discardSeat, tile: winTile },
+      players: state.players.map((p) =>
+        p.seat === ronSeat ? { ...p, hand: tenpaiHand, discards: [idx('5s')] } : p,
+      ),
+    };
+    expect(isFuriten(rigged, ronSeat)).toBe(true);
+    expect(canRon(rigged, ronSeat)).toBe(false);
+  });
+
+  it('론 기회를 넘기면(동첨 후리텐) 이후 같은 국면에서 론을 할 수 없다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(12) });
+    const dealerSeat = state.dealerSeat;
+    const ronSeat = (dealerSeat + 1) % 4;
+    const discardSeat = (dealerSeat + 3) % 4;
+    const winTile = idx('8s');
+    const rigged: GameState = {
+      ...state,
+      lastDiscard: { seat: discardSeat, tile: winTile },
+      players: state.players.map((p) => (p.seat === ronSeat ? { ...p, hand: tenpaiHand } : p)),
+    };
+    expect(canRon(rigged, ronSeat)).toBe(true);
+
+    const declined = markRonDeclined(rigged, ronSeat);
+    expect(isFuriten(declined, ronSeat)).toBe(true);
+    expect(canRon(declined, ronSeat)).toBe(false);
+  });
+
+  it('리치 중이 아니면 자기 차례에 새로 드로우하면 동첨 후리텐이 풀린다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(13) });
+    const seat = state.currentSeat;
+    const withFuriten: GameState = {
+      ...state,
+      players: state.players.map((p) => (p.seat === seat ? { ...p, missedRonFuriten: true } : p)),
+    };
+    // 자기 차례가 아니면 풀리지 않는다
+    const otherSeat = (seat + 1) % 4;
+    const stateForOther: GameState = {
+      ...withFuriten,
+      currentSeat: otherSeat,
+      players: withFuriten.players.map((p) => (p.seat === otherSeat ? { ...p, missedRonFuriten: false } : p)),
+    };
+    const drawnForOther = drawTile(stateForOther);
+    expect(drawnForOther.players[seat].missedRonFuriten).toBe(true); // 다른 사람 드로우로는 안 풀림
+
+    const drawn = drawTile(withFuriten);
+    expect(drawn.players[seat].missedRonFuriten).toBe(false);
+  });
+
+  it('리치 중이면 자기 차례에 드로우해도 동첨 후리텐이 풀리지 않는다', () => {
+    const state = dealGame({ aiLevels: ['easy', 'easy', 'easy'], rng: fixedRng(14) });
+    const seat = state.currentSeat;
+    const withFuriten: GameState = {
+      ...state,
+      players: state.players.map((p) => (p.seat === seat ? { ...p, isRiichi: true, missedRonFuriten: true } : p)),
+    };
+    const drawn = drawTile(withFuriten);
+    expect(drawn.players[seat].missedRonFuriten).toBe(true);
   });
 });
 

@@ -16,3 +16,13 @@ export function findWaits(hand: Hand34): number[] {
   }
   return waits;
 }
+
+/**
+ * 후리텐(버림패 후리텐) 판정: 현재 대기패 중 하나라도 자신이 이미 버린 패에 있으면
+ * 텐파이 형태를 바꾸기 전까지는 계속 후리텐 상태다(론 불가, 쯔모는 가능).
+ */
+export function isDiscardFuriten(hand: Hand34, discards: number[]): boolean {
+  const waits = findWaits(hand);
+  if (waits.length === 0) return false;
+  return waits.some((w) => discards.includes(w));
+}

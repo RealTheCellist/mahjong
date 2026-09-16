@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findWaits } from '../waits';
+import { findWaits, isDiscardFuriten } from '../waits';
 import { tileNameToIndex, tileNamesToHand34 } from '../tileCodec';
 
 const idx = tileNameToIndex;
@@ -27,5 +27,30 @@ describe('findWaits', () => {
       '2m', '3m', '4m', '5m', '6m', '7m', '4p', '5p', '6p', '3s', '4s', '5s', '9s',
     ]);
     expect(findWaits(hand)).toEqual([idx('9s')]);
+  });
+});
+
+describe('isDiscardFuriten', () => {
+  it('대기패가 자신의 버림패에 있으면 후리텐이다', () => {
+    const hand = tileNamesToHand34([
+      '2m', '3m', '4m', '5m', '6m', '7m', '4p', '5p', '6p', '3s', '4s', '5s', '9s',
+    ]);
+    expect(isDiscardFuriten(hand, [idx('9s')])).toBe(true);
+    expect(isDiscardFuriten(hand, [idx('1z')])).toBe(false);
+  });
+
+  it('텐파이가 아니면 후리텐이 아니다', () => {
+    const hand = tileNamesToHand34([
+      '1m', '4m', '7m', '1p', '4p', '7p', '1s', '4s', '7s', '1z', '3z', '5z', '7z',
+    ]);
+    expect(isDiscardFuriten(hand, [idx('1m')])).toBe(false);
+  });
+
+  it('다면 대기 중 하나만 버림패에 있어도 후리텐이다', () => {
+    const hand = tileNamesToHand34([
+      '2m', '3m', '4m', '5m', '5m', '4p', '5p', '6p', '3s', '4s', '5s', '6s', '7s',
+    ]);
+    // 3s4s5s6s7s는 2s/5s/8s 삼면대기 -> 5s만 버렸어도 전체가 후리텐이 된다
+    expect(isDiscardFuriten(hand, [idx('5s')])).toBe(true);
   });
 });

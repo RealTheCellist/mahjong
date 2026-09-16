@@ -4,6 +4,7 @@ import { calculateShanten } from '../engine/shanten';
 import { checkYaku } from '../engine/yaku';
 import { calculateScore, type ScoreResult } from '../engine/scoring';
 import { canPon, canMinkan, getChiOptions } from '../engine/calls';
+import { isDiscardFuriten } from '../engine/waits';
 import type { AiLevel, GameState, PlayerState } from './types';
 
 const RIICHI_STICK = 1000;
@@ -63,6 +64,7 @@ export function dealGame(options: DealOptions): GameState {
     isRiichi: false,
     score: STARTING_SCORE,
     seatWind: windForSeat(seat, dealerSeat),
+    missedRonFuriten: false,
   }));
 
   const state: GameState = {
@@ -87,7 +89,9 @@ export function drawTile(state: GameState): GameState {
   }
   const [tile, ...restWall] = state.wall;
   const players = state.players.map((p) =>
-    p.seat === state.currentSeat ? { ...p, hand: bumpHand(p.hand, tile, 1) } : p,
+    p.seat === state.currentSeat
+      ? { ...p, hand: bumpHand(p.hand, tile, 1), missedRonFuriten: p.isRiichi ? p.missedRonFuriten : false }
+      : p,
   );
   return { ...state, wall: restWall, players, phase: 'discard', lastDraw: tile };
 }
@@ -122,8 +126,21 @@ export function canTsumo(state: GameState): boolean {
 }
 
 /** 특정 자리 플레이어가 방금 버려진 패로 론 화료가 가능한지 확인한다 */
+/** seat가 현재 후리텐 상태인지(버림패 후리텐 또는 론을 놓쳐서 걸린 후리텐) 확인한다 */
+export function isFuriten(state: GameState, seat: number): boolean {
+  const player = state.players[seat];
+  return player.missedRonFuriten || isDiscardFuriten(player.hand, player.discards);
+}
+
+/** seat의 론 기회를 놓쳤음을 기록한다(동첨 후리텐). 리치 중이면 이번 판이 끝날 때까지 유지된다 */
+export function markRonDeclined(state: GameState, seat: number): GameState {
+  const players = state.players.map((p) => (p.seat === seat ? { ...p, missedRonFuriten: true } : p));
+  return { ...state, players };
+}
+
 export function canRon(state: GameState, seat: number): boolean {
   if (!state.lastDiscard || state.lastDiscard.seat === seat) return false;
+  if (isFuriten(state, seat)) return false;
   const player = state.players[seat];
   const testHand = bumpHand(player.hand, state.lastDiscard.tile, 1);
   try {

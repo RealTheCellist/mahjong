@@ -18,6 +18,8 @@ import {
   callMinkan,
   callAnkan,
   bumpHand,
+  isFuriten,
+  markRonDeclined,
 } from '../game/gameEngine';
 import {
   decideAiDiscard,
@@ -254,6 +256,8 @@ export function PracticeGameScreen() {
           const timer = setTimeout(() => setState(applyRon(state, seat)), AI_STEP_DELAY_MS);
           return () => clearTimeout(timer);
         }
+        setState(markRonDeclined(state, seat));
+        return;
       }
 
       for (const seat of order) {
@@ -366,6 +370,9 @@ export function PracticeGameScreen() {
   };
   const handleSkipReaction = () => {
     if (!pendingReaction) return;
+    if (pendingReaction.type === 'ron') {
+      setState(markRonDeclined(state, pendingReaction.seat));
+    }
     setDeclinedSeats((prev) => new Set(prev).add(pendingReaction.seat));
     setPendingReaction(null);
   };
@@ -575,6 +582,9 @@ export function PracticeGameScreen() {
               <span style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 900, color: T.creamStrong }}>
                 {human.score.toLocaleString()}
               </span>
+              {isFuriten(state, HUMAN_SEAT) && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: T.warn }}>후리텐(론 불가)</span>
+              )}
             </div>
             <div style={{ position: 'absolute', left: 196, top: 300, width: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
               <span style={{ fontSize: 12, color: leftOpponent.seat === state.dealerSeat ? T.warn : T.muted }}>
