@@ -4,22 +4,36 @@ import { tileIndexToName } from '../engine/tileCodec';
 import { generateNanikiruProblem } from '../problems/generator';
 import type { AnswerGrade, Problem } from '../problems/types';
 import { markUnitTestResult } from '../progress/store';
-import { FIXED_PROBLEMS } from './fixedProblems';
+import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, getFixedProblems } from './fixedProblems';
 import { AppBrand } from '../components/AppBrand';
 import { NANIKIRU_APP_NAME } from '../branding';
 
-const CHAPTER_ID = '2-1';
+const CHAPTER_THEORY_TAG: Record<string, string[]> = {
+  '1-1': ['isolated-tile'],
+  '1-2': ['taatsu-compare'],
+  '2-1': ['ukeire-efficiency'],
+};
+
 const TOTAL_PROBLEMS = 10;
 const PASS_RATIO = 0.7;
 
-function generateProblemSet(): Problem[] {
+function generateProblemSet(chapterId: string): Problem[] {
   return Array.from({ length: TOTAL_PROBLEMS }, () =>
-    generateNanikiruProblem({ chapter: CHAPTER_ID, theoryTag: ['ukeire-efficiency'], difficulty: 'basic' }),
+    generateNanikiruProblem({
+      chapter: chapterId,
+      theoryTag: CHAPTER_THEORY_TAG[chapterId] ?? ['ukeire-efficiency'],
+      difficulty: 'basic',
+    }),
   );
 }
 
-export function UnitTestScreen() {
-  const [problems, setProblems] = useState<Problem[]>(() => generateProblemSet());
+interface UnitTestScreenProps {
+  initialChapter?: string;
+}
+
+export function UnitTestScreen({ initialChapter }: UnitTestScreenProps = {}) {
+  const [chapterId, setChapterId] = useState(initialChapter ?? NANIKIRU_CHAPTERS[0]);
+  const [problems, setProblems] = useState<Problem[]>(() => generateProblemSet(chapterId));
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<(AnswerGrade | null)[]>(() => Array(TOTAL_PROBLEMS).fill(null));
   const [finished, setFinished] = useState(false);
@@ -41,18 +55,26 @@ export function UnitTestScreen() {
   const correctCount = answers.filter((g) => g === 'S').length;
   const answeredCount = answers.filter((g) => g !== null).length;
 
+  const switchChapter = (nextChapterId: string) => {
+    setChapterId(nextChapterId);
+    setProblems(generateProblemSet(nextChapterId));
+    setAnswers(Array(TOTAL_PROBLEMS).fill(null));
+    setIndex(0);
+    setFinished(false);
+  };
+
   const handleNext = () => {
     if (index < TOTAL_PROBLEMS - 1) {
       setIndex((i) => i + 1);
       return;
     }
     const passed = correctCount / TOTAL_PROBLEMS >= PASS_RATIO;
-    markUnitTestResult(CHAPTER_ID, FIXED_PROBLEMS.length, passed);
+    markUnitTestResult(chapterId, getFixedProblems(chapterId).length, passed);
     setFinished(true);
   };
 
   const restart = () => {
-    setProblems(generateProblemSet());
+    setProblems(generateProblemSet(chapterId));
     setAnswers(Array(TOTAL_PROBLEMS).fill(null));
     setIndex(0);
     setFinished(false);
@@ -63,7 +85,7 @@ export function UnitTestScreen() {
     return (
       <section style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
         <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
-        <h1>단원평가 결과</h1>
+        <h1>단원평가 결과 ({CHAPTER_LABELS[chapterId] ?? chapterId})</h1>
         <p style={{ fontSize: 20, fontWeight: 700, color: passed ? '#1e8449' : '#c0392b' }}>
           {passed ? '합격!' : '불합격'}
         </p>
@@ -82,6 +104,15 @@ export function UnitTestScreen() {
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <h1>단원평가</h1>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        {NANIKIRU_CHAPTERS.map((id) => (
+          <button key={id} type="button" onClick={() => switchChapter(id)} disabled={chapterId === id}>
+            {CHAPTER_LABELS[id] ?? id}
+          </button>
+        ))}
+      </div>
+
       <p style={{ color: 'var(--text)' }}>
         {index + 1} / {TOTAL_PROBLEMS} 문제 (답변 완료: {answeredCount})
       </p>

@@ -1,8 +1,7 @@
 import type { CSSProperties } from 'react';
 import { loadAllChapterProgress } from '../progress/store';
 import { INTRO_APP_NAME, NANIKIRU_APP_NAME } from '../branding';
-
-const DEMO_CHAPTERS = ['1-1', '1-2', '2-1'];
+import { NANIKIRU_CHAPTERS, CHAPTER_LABELS } from '../nanikiru/fixedProblems';
 
 export type IntroScreen =
   | 'tile-sort'
@@ -26,7 +25,7 @@ interface HomeScreenProps {
 }
 
 export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps) {
-  const progress = loadAllChapterProgress(DEMO_CHAPTERS);
+  const progress = loadAllChapterProgress([...NANIKIRU_CHAPTERS]);
 
   return (
     <section style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
@@ -55,19 +54,22 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
           <tr>
             <th style={cellStyle}>챕터</th>
             <th style={cellStyle}>고정문제</th>
-            <th style={cellStyle}>다음 챕터</th>
+            <th style={cellStyle}>단원평가</th>
+            <th style={cellStyle}>상태</th>
           </tr>
         </thead>
         <tbody>
-          {DEMO_CHAPTERS.map((chapterId) => {
+          {NANIKIRU_CHAPTERS.map((chapterId, i) => {
             const p = progress[chapterId];
+            const isAccessible = i === 0 || Boolean(progress[NANIKIRU_CHAPTERS[i - 1]]?.unlockedNextChapter);
             return (
               <tr key={chapterId}>
-                <td style={cellStyle}>{chapterId}</td>
+                <td style={cellStyle}>{CHAPTER_LABELS[chapterId] ?? chapterId}</td>
                 <td style={cellStyle}>
-                  {p ? `${p.fixedPoolCleared}/${p.fixedPoolTotal}` : '-'}
+                  {p ? `${p.fixedPoolCleared}/${p.fixedPoolTotal}` : '0/-'}
                 </td>
-                <td style={cellStyle}>{p?.unlockedNextChapter ? '열림' : '잠김'}</td>
+                <td style={cellStyle}>{p?.unitTestPassed ? '합격' : '미응시'}</td>
+                <td style={cellStyle}>{isAccessible ? '열림' : '잠김'}</td>
               </tr>
             );
           })}

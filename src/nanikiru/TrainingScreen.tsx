@@ -8,39 +8,61 @@ import {
   recordFixedProblemCleared,
   recordGeneratedAttempt,
 } from '../progress/store';
-import { FIXED_PROBLEMS } from './fixedProblems';
+import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, getFixedProblems } from './fixedProblems';
 import { addWrongAnswer } from './wrongAnswerQueue';
 import { AppBrand } from '../components/AppBrand';
 import { NANIKIRU_APP_NAME } from '../branding';
 
-const CHAPTER_ID = '2-1';
+const CHAPTER_THEORY_TAG: Record<string, string[]> = {
+  '1-1': ['isolated-tile'],
+  '1-2': ['taatsu-compare'],
+  '2-1': ['ukeire-efficiency'],
+};
 
 type Mode = 'fixed' | 'generated';
 
-function pickGenerated(): Problem {
-  return generateNanikiruProblem({ chapter: CHAPTER_ID, theoryTag: ['ukeire-efficiency'], difficulty: 'basic' });
+function pickGenerated(chapterId: string): Problem {
+  return generateNanikiruProblem({
+    chapter: chapterId,
+    theoryTag: CHAPTER_THEORY_TAG[chapterId] ?? ['ukeire-efficiency'],
+    difficulty: 'basic',
+  });
 }
 
-export function TrainingScreen() {
+interface TrainingScreenProps {
+  initialChapter?: string;
+}
+
+export function TrainingScreen({ initialChapter }: TrainingScreenProps = {}) {
+  const [chapterId, setChapterId] = useState(initialChapter ?? NANIKIRU_CHAPTERS[0]);
+  const fixedProblems = getFixedProblems(chapterId);
   const [mode, setMode] = useState<Mode>('fixed');
   const [fixedIndex, setFixedIndex] = useState(0);
-  const [problem, setProblem] = useState<Problem>(() => FIXED_PROBLEMS[0]);
+  const [problem, setProblem] = useState<Problem>(() => fixedProblems[0]);
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
 
-  const progress = loadOrCreateChapterProgress(CHAPTER_ID, FIXED_PROBLEMS.length);
+  const progress = loadOrCreateChapterProgress(chapterId, fixedProblems.length);
 
   const selectedAnswer: GradedAnswer | undefined = useMemo(() => {
     if (selectedTile === null) return undefined;
     return problem.gradedAnswers?.find((a) => a.tile === selectedTile);
   }, [problem, selectedTile]);
 
+  const switchChapter = (nextChapterId: string) => {
+    setChapterId(nextChapterId);
+    setMode('fixed');
+    setFixedIndex(0);
+    setSelectedTile(null);
+    setProblem(getFixedProblems(nextChapterId)[0]);
+  };
+
   const switchMode = (nextMode: Mode) => {
     setMode(nextMode);
     setSelectedTile(null);
     if (nextMode === 'fixed') {
-      setProblem(FIXED_PROBLEMS[fixedIndex % FIXED_PROBLEMS.length]);
+      setProblem(fixedProblems[fixedIndex % fixedProblems.length]);
     } else {
-      setProblem(pickGenerated());
+      setProblem(pickGenerated(chapterId));
     }
   };
 
@@ -54,13 +76,13 @@ export function TrainingScreen() {
 
   const handleNext = () => {
     if (mode === 'fixed') {
-      recordFixedProblemCleared(CHAPTER_ID, FIXED_PROBLEMS.length);
-      const nextIndex = (fixedIndex + 1) % FIXED_PROBLEMS.length;
+      recordFixedProblemCleared(chapterId, fixedProblems.length);
+      const nextIndex = (fixedIndex + 1) % fixedProblems.length;
       setFixedIndex(nextIndex);
-      setProblem(FIXED_PROBLEMS[nextIndex]);
+      setProblem(fixedProblems[nextIndex]);
     } else {
-      recordGeneratedAttempt(CHAPTER_ID, FIXED_PROBLEMS.length, selectedAnswer?.grade === 'S');
-      setProblem(pickGenerated());
+      recordGeneratedAttempt(chapterId, fixedProblems.length, selectedAnswer?.grade === 'S');
+      setProblem(pickGenerated(chapterId));
     }
     setSelectedTile(null);
   };
@@ -69,6 +91,14 @@ export function TrainingScreen() {
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <h1>나니키루 본훈련</h1>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        {NANIKIRU_CHAPTERS.map((id) => (
+          <button key={id} type="button" onClick={() => switchChapter(id)} disabled={chapterId === id}>
+            {CHAPTER_LABELS[id] ?? id}
+          </button>
+        ))}
+      </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <button type="button" onClick={() => switchMode('fixed')} disabled={mode === 'fixed'}>
