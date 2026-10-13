@@ -8,34 +8,56 @@ import { tileIndexToName } from '../engine/tileCodec';
 import { generateNanikiruProblem } from '../problems/generator';
 import type { GradedAnswer, Problem } from '../problems/types';
 import { loadOrCreateChapterProgress, recordFixedProblemCleared, recordGeneratedAttempt } from '../progress/store';
-import { FIXED_PROBLEMS } from './fixedProblems';
+import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, getFixedProblems } from './fixedProblems';
 import { addWrongAnswer } from './wrongAnswerQueue';
 
-const CHAPTER_ID = '2-1';
+const CHAPTER_THEORY_TAG: Record<string, string[]> = {
+  '1-1': ['isolated-tile'],
+  '1-2': ['taatsu-compare'],
+  '2-1': ['ukeire-efficiency'],
+};
 
 type Mode = 'fixed' | 'generated';
 
-function pickGenerated(): Problem {
-  return generateNanikiruProblem({ chapter: CHAPTER_ID, theoryTag: ['ukeire-efficiency'], difficulty: 'basic' });
+function pickGenerated(chapterId: string): Problem {
+  return generateNanikiruProblem({
+    chapter: chapterId,
+    theoryTag: CHAPTER_THEORY_TAG[chapterId] ?? ['ukeire-efficiency'],
+    difficulty: 'basic',
+  });
 }
 
-export function TrainingScreen() {
+interface TrainingScreenProps {
+  initialChapter?: string;
+}
+
+export function TrainingScreen({ initialChapter }: TrainingScreenProps = {}) {
+  const [chapterId, setChapterId] = useState(initialChapter ?? NANIKIRU_CHAPTERS[0]);
+  const fixedProblems = getFixedProblems(chapterId);
   const [mode, setMode] = useState<Mode>('fixed');
   const [fixedIndex, setFixedIndex] = useState(0);
-  const [problem, setProblem] = useState<Problem>(() => FIXED_PROBLEMS[0]);
+  const [problem, setProblem] = useState<Problem>(() => fixedProblems[0]);
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
 
-  const progress = loadOrCreateChapterProgress(CHAPTER_ID, FIXED_PROBLEMS.length);
+  const progress = loadOrCreateChapterProgress(chapterId, fixedProblems.length);
 
   const selectedAnswer: GradedAnswer | undefined = useMemo(() => {
     if (selectedTile === null) return undefined;
     return problem.gradedAnswers?.find((a) => a.tile === selectedTile);
   }, [problem, selectedTile]);
 
+  const switchChapter = (nextChapterId: string) => {
+    setChapterId(nextChapterId);
+    setMode('fixed');
+    setFixedIndex(0);
+    setSelectedTile(null);
+    setProblem(getFixedProblems(nextChapterId)[0]);
+  };
+
   const switchMode = (nextMode: Mode) => {
     setMode(nextMode);
     setSelectedTile(null);
-    setProblem(nextMode === 'fixed' ? FIXED_PROBLEMS[fixedIndex % FIXED_PROBLEMS.length] : pickGenerated());
+    setProblem(nextMode === 'fixed' ? fixedProblems[fixedIndex % fixedProblems.length] : pickGenerated(chapterId));
   };
 
   const handleSelectTile = (tile: number) => {
@@ -48,13 +70,13 @@ export function TrainingScreen() {
 
   const handleNext = () => {
     if (mode === 'fixed') {
-      recordFixedProblemCleared(CHAPTER_ID, FIXED_PROBLEMS.length);
-      const nextIndex = (fixedIndex + 1) % FIXED_PROBLEMS.length;
+      recordFixedProblemCleared(chapterId, fixedProblems.length);
+      const nextIndex = (fixedIndex + 1) % fixedProblems.length;
       setFixedIndex(nextIndex);
-      setProblem(FIXED_PROBLEMS[nextIndex]);
+      setProblem(fixedProblems[nextIndex]);
     } else {
-      recordGeneratedAttempt(CHAPTER_ID, FIXED_PROBLEMS.length, selectedAnswer?.grade === 'S');
-      setProblem(pickGenerated());
+      recordGeneratedAttempt(chapterId, fixedProblems.length, selectedAnswer?.grade === 'S');
+      setProblem(pickGenerated(chapterId));
     }
     setSelectedTile(null);
   };
@@ -63,6 +85,12 @@ export function TrainingScreen() {
     <Screen>
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <Text style={styles.title}>본훈련</Text>
+
+      <ButtonRow>
+        {NANIKIRU_CHAPTERS.map((id) => (
+          <Button key={id} title={CHAPTER_LABELS[id] ?? id} onPress={() => switchChapter(id)} disabled={chapterId === id} />
+        ))}
+      </ButtonRow>
 
       <ButtonRow>
         <Button title="고정문제은행" onPress={() => switchMode('fixed')} disabled={mode === 'fixed'} />

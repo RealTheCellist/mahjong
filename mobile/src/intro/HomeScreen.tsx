@@ -2,8 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { loadAllChapterProgress } from '../progress/store';
 import { INTRO_APP_NAME, NANIKIRU_APP_NAME } from '../branding';
 import { Body, Button, ButtonRow, Heading, Screen } from '../components/ui';
-
-const DEMO_CHAPTERS = ['1-1', '1-2', '2-1'];
+import { NANIKIRU_CHAPTERS, CHAPTER_LABELS } from '../nanikiru/fixedProblems';
 
 export type IntroScreen =
   | 'tile-sort'
@@ -26,7 +25,7 @@ interface HomeScreenProps {
 }
 
 export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps) {
-  const progress = loadAllChapterProgress(DEMO_CHAPTERS);
+  const progress = loadAllChapterProgress([...NANIKIRU_CHAPTERS]);
 
   return (
     <Screen>
@@ -44,15 +43,18 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
         <View style={[styles.row, styles.headerRow]}>
           <Text style={[styles.cell, styles.headerCell]}>챕터</Text>
           <Text style={[styles.cell, styles.headerCell]}>고정문제</Text>
-          <Text style={[styles.cell, styles.headerCell]}>다음 챕터</Text>
+          <Text style={[styles.cell, styles.headerCell]}>단원평가</Text>
+          <Text style={[styles.cell, styles.headerCell]}>상태</Text>
         </View>
-        {DEMO_CHAPTERS.map((chapterId) => {
+        {NANIKIRU_CHAPTERS.map((chapterId, i) => {
           const p = progress[chapterId];
+          const isAccessible = i === 0 || Boolean(progress[NANIKIRU_CHAPTERS[i - 1]]?.unlockedNextChapter);
           return (
             <View key={chapterId} style={styles.row}>
-              <Text style={styles.cell}>{chapterId}</Text>
-              <Text style={styles.cell}>{p ? `${p.fixedPoolCleared}/${p.fixedPoolTotal}` : '-'}</Text>
-              <Text style={styles.cell}>{p?.unlockedNextChapter ? '열림' : '잠김'}</Text>
+              <Text style={styles.cell}>{CHAPTER_LABELS[chapterId] ?? chapterId}</Text>
+              <Text style={styles.cell}>{p ? `${p.fixedPoolCleared}/${p.fixedPoolTotal}` : '0/-'}</Text>
+              <Text style={styles.cell}>{p?.unitTestPassed ? '합격' : '미응시'}</Text>
+              <Text style={styles.cell}>{isAccessible ? '열림' : '잠김'}</Text>
             </View>
           );
         })}
