@@ -24,4 +24,17 @@ describe('wrongAnswerQueue', () => {
     clearWrongAnswers();
     expect(getWrongAnswers()).toHaveLength(0);
   });
+
+  it('chapterId를 지정하면 해당 챕터의 오답만 지운다', () => {
+    const chapterA = FIXED_PROBLEMS.find((p) => p.chapter === '1-1')!;
+    const chapterB = FIXED_PROBLEMS.find((p) => p.chapter === '2-1')!;
+    addWrongAnswer({ problem: chapterA, chosenTile: 0, grade: 'B', reason: 'r1' });
+    addWrongAnswer({ problem: chapterB, chosenTile: 1, grade: 'A', reason: 'r2' });
+
+    clearWrongAnswers('1-1');
+
+    const remaining = getWrongAnswers();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].problem.chapter).toBe('2-1');
+  });
 });

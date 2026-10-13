@@ -25,8 +25,9 @@ export function getWrongAnswers(): WrongAnswerEntry[] {
   return queue;
 }
 
-export function clearWrongAnswers(): void {
-  queue = [];
+/** chapterId를 지정하면 해당 챕터의 오답만 지우고, 생략하면 전체를 비운다 */
+export function clearWrongAnswers(chapterId?: string): void {
+  queue = chapterId ? queue.filter((e) => e.problem.chapter !== chapterId) : [];
   notify();
 }
 
