@@ -32,6 +32,13 @@ export const CHAPTER_LABELS: Record<string, string> = {
   '2-1': '2-1. 우케이레 효율',
 };
 
+/** 챕터별로 임의 생성 문제에 붙일 이론 태그 (본훈련/종합응용 공용) */
+export const CHAPTER_THEORY_TAG: Record<string, string[]> = {
+  '1-1': ['isolated-tile'],
+  '1-2': ['taatsu-compare'],
+  '2-1': ['ukeire-efficiency'],
+};
+
 /**
  * 챕터별 고정문제은행. 문제집의 문제를 그대로 옮기지 않고 직접 구성한
  * 손패이며, 정답은 항상 룰 엔진(gradeDiscardChoice)으로 산출한다.

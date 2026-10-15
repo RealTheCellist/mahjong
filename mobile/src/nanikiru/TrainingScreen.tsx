@@ -8,14 +8,8 @@ import { tileIndexToName } from '../engine/tileCodec';
 import { generateNanikiruProblem } from '../problems/generator';
 import type { GradedAnswer, Problem } from '../problems/types';
 import { loadOrCreateChapterProgress, recordFixedProblemCleared, recordGeneratedAttempt } from '../progress/store';
-import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, getFixedProblems } from './fixedProblems';
+import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, CHAPTER_THEORY_TAG, getFixedProblems } from './fixedProblems';
 import { addWrongAnswer } from './wrongAnswerQueue';
-
-const CHAPTER_THEORY_TAG: Record<string, string[]> = {
-  '1-1': ['isolated-tile'],
-  '1-2': ['taatsu-compare'],
-  '2-1': ['ukeire-efficiency'],
-};
 
 type Mode = 'fixed' | 'generated';
 

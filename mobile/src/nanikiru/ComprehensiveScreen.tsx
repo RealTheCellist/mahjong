@@ -2,21 +2,26 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { HandView } from '../components/HandView';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Button, Screen } from '../components/ui';
+import { Body, Button, ButtonRow, Screen } from '../components/ui';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { tileIndexToName } from '../engine/tileCodec';
 import { generateNanikiruProblem } from '../problems/generator';
 import type { GradedAnswer, Problem } from '../problems/types';
+import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, CHAPTER_THEORY_TAG } from './fixedProblems';
 
-const CHAPTER_ID = '3-1';
 const WIND_LABEL: Record<number, string> = { 27: '동', 28: '남', 29: '서', 30: '북' };
 
-function pickProblem(): Problem {
-  return generateNanikiruProblem({ chapter: CHAPTER_ID, theoryTag: ['comprehensive'], difficulty: 'realistic' });
+function pickProblem(chapterId: string): Problem {
+  return generateNanikiruProblem({
+    chapter: chapterId,
+    theoryTag: CHAPTER_THEORY_TAG[chapterId] ?? ['comprehensive'],
+    difficulty: 'realistic',
+  });
 }
 
 export function ComprehensiveScreen() {
-  const [problem, setProblem] = useState<Problem>(() => pickProblem());
+  const [chapterId, setChapterId] = useState<string>(NANIKIRU_CHAPTERS[0]);
+  const [problem, setProblem] = useState<Problem>(() => pickProblem(NANIKIRU_CHAPTERS[0]));
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
 
   const selectedAnswer: GradedAnswer | undefined = useMemo(() => {
@@ -24,8 +29,14 @@ export function ComprehensiveScreen() {
     return problem.gradedAnswers?.find((a) => a.tile === selectedTile);
   }, [problem, selectedTile]);
 
+  const switchChapter = (nextChapterId: string) => {
+    setChapterId(nextChapterId);
+    setProblem(pickProblem(nextChapterId));
+    setSelectedTile(null);
+  };
+
   const handleNext = () => {
-    setProblem(pickProblem());
+    setProblem(pickProblem(chapterId));
     setSelectedTile(null);
   };
 
@@ -36,6 +47,12 @@ export function ComprehensiveScreen() {
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <Text style={styles.title}>종합응용</Text>
       <Body>순서·도라·자리바람까지 고려한 실전형 문제입니다.</Body>
+
+      <ButtonRow>
+        {NANIKIRU_CHAPTERS.map((id) => (
+          <Button key={id} title={CHAPTER_LABELS[id] ?? id} onPress={() => switchChapter(id)} disabled={chapterId === id} />
+        ))}
+      </ButtonRow>
 
       {context && (
         <>
