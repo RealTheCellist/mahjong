@@ -2,15 +2,17 @@ import { useState, useSyncExternalStore } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { HandView } from '../components/HandView';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Button, ButtonRow, Card, Screen } from '../components/ui';
+import { Body, Button, Card, Heading, Screen, Tab, TabRow } from '../components/ui';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { tileIndexToName } from '../engine/tileCodec';
 import { clearWrongAnswers, getWrongAnswers, subscribeWrongAnswers } from './wrongAnswerQueue';
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS } from './fixedProblems';
+import { useTheme } from '../theme';
 
 const ALL_CHAPTERS = '전체';
 
 export function WrongAnswerScreen() {
+  const theme = useTheme();
   const allEntries = useSyncExternalStore(subscribeWrongAnswers, getWrongAnswers);
   const [chapterFilter, setChapterFilter] = useState<string>(ALL_CHAPTERS);
 
@@ -36,34 +38,30 @@ export function WrongAnswerScreen() {
   return (
     <Screen>
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
-      <Text style={styles.title}>오답노트</Text>
+      <Heading>오답노트</Heading>
       <Body>본훈련에서 S등급이 아닌 버림을 선택하면 여기에 쌓입니다.</Body>
 
-      <ButtonRow>
-        <Button
-          title={`전체 (${allEntries.length})`}
-          onPress={() => setChapterFilter(ALL_CHAPTERS)}
-          disabled={chapterFilter === ALL_CHAPTERS}
-        />
+      <TabRow>
+        <Tab label={`전체 (${allEntries.length})`} active={chapterFilter === ALL_CHAPTERS} onPress={() => setChapterFilter(ALL_CHAPTERS)} />
         {NANIKIRU_CHAPTERS.map((id) => (
-          <Button
+          <Tab
             key={id}
-            title={`${CHAPTER_LABELS[id] ?? id} (${countByChapter.get(id) ?? 0})`}
+            label={`${CHAPTER_LABELS[id] ?? id} (${countByChapter.get(id) ?? 0})`}
+            active={chapterFilter === id}
             onPress={() => setChapterFilter(id)}
-            disabled={chapterFilter === id}
           />
         ))}
-      </ButtonRow>
+      </TabRow>
 
       {entries.length === 0 ? (
-        <Text style={styles.dim}>
+        <Text style={[styles.dim, { color: theme.textMuted }]}>
           {chapterFilter === ALL_CHAPTERS ? '아직 오답이 없습니다.' : '이 챕터에는 아직 오답이 없습니다.'}
         </Text>
       ) : (
         <>
-          <Text style={styles.sectionTitle}>이론별 집계</Text>
+          <Text style={[styles.sectionTitle, { color: theme.heading }]}>이론별 집계</Text>
           {[...byTheory.entries()].map(([tag, count]) => (
-            <Text key={tag}>
+            <Text key={tag} style={{ color: theme.text }}>
               {tag}: {count}건
             </Text>
           ))}
@@ -75,11 +73,11 @@ export function WrongAnswerScreen() {
 
           {entries.map((entry) => (
             <Card key={`${entry.problem.id}-${entry.recordedAt}`}>
-              <Text style={styles.entryTitle}>
+              <Text style={[styles.entryTitle, { color: theme.heading }]}>
                 {CHAPTER_LABELS[entry.problem.chapter] ?? entry.problem.chapter} · {tileIndexToName(entry.chosenTile)} 버림 — 등급{' '}
                 {entry.grade}
               </Text>
-              <Text style={styles.entryReason}>{entry.reason}</Text>
+              <Text style={[styles.entryReason, { color: theme.text }]}>{entry.reason}</Text>
               <HandView hand={entry.problem.hand} tileWidth={30} />
             </Card>
           ))}
@@ -90,8 +88,7 @@ export function WrongAnswerScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
-  dim: { color: '#8a8168' },
+  dim: {},
   sectionTitle: { fontWeight: '700', marginTop: 8, marginBottom: 4 },
   entryTitle: { fontWeight: '700' },
   entryReason: { marginBottom: 8 },

@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Button, ButtonRow, Card, Screen } from '../components/ui';
+import { Body, Button, ButtonRow, Card, Heading, Screen, Tab, TabRow } from '../components/ui';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { getTheorySlides } from './theorySlides';
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS } from './fixedProblems';
+import { useTheme } from '../theme';
 
 export function TheorySlidesScreen() {
+  const theme = useTheme();
   const [chapterId, setChapterId] = useState<string>(NANIKIRU_CHAPTERS[0]);
   const [index, setIndex] = useState(0);
 
@@ -23,18 +25,20 @@ export function TheorySlidesScreen() {
   return (
     <Screen>
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
-      <Text style={styles.title}>이론학습</Text>
+      <Heading>이론학습</Heading>
 
-      <ButtonRow>
+      <TabRow>
         {NANIKIRU_CHAPTERS.map((id) => (
-          <Button key={id} title={CHAPTER_LABELS[id] ?? id} onPress={() => switchChapter(id)} disabled={chapterId === id} />
+          <Tab key={id} label={CHAPTER_LABELS[id] ?? id} active={chapterId === id} onPress={() => switchChapter(id)} />
         ))}
-      </ButtonRow>
+      </TabRow>
 
-      <Body>{index + 1} / {slides.length}</Body>
+      <Body>
+        {index + 1} / {slides.length}
+      </Body>
       <Card>
-        <Text style={styles.slideTitle}>{slide.title}</Text>
-        <Text style={styles.slideBody}>{slide.body}</Text>
+        <Text style={[styles.slideTitle, { color: theme.heading }]}>{slide.title}</Text>
+        <Text style={[styles.slideBody, { color: theme.text }]}>{slide.body}</Text>
       </Card>
       <ButtonRow>
         <Button title="이전" onPress={() => setIndex((i) => i - 1)} disabled={isFirst} />
@@ -45,7 +49,6 @@ export function TheorySlidesScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
   slideTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
   slideBody: { lineHeight: 22 },
 });

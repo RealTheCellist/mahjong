@@ -2,19 +2,14 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { HandView } from '../components/HandView';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Button, ButtonRow, Screen } from '../components/ui';
+import { Body, Button, Heading, Screen, Tab, TabRow } from '../components/ui';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { tileIndexToName } from '../engine/tileCodec';
 import { generateNanikiruProblem } from '../problems/generator';
 import type { AnswerGrade, Problem } from '../problems/types';
 import { markUnitTestResult } from '../progress/store';
-import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, getFixedProblems } from './fixedProblems';
-
-const CHAPTER_THEORY_TAG: Record<string, string[]> = {
-  '1-1': ['isolated-tile'],
-  '1-2': ['taatsu-compare'],
-  '2-1': ['ukeire-efficiency'],
-};
+import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, CHAPTER_THEORY_TAG, getFixedProblems } from './fixedProblems';
+import { useTheme } from '../theme';
 
 const TOTAL_PROBLEMS = 10;
 const PASS_RATIO = 0.7;
@@ -34,6 +29,7 @@ interface UnitTestScreenProps {
 }
 
 export function UnitTestScreen({ initialChapter }: UnitTestScreenProps = {}) {
+  const theme = useTheme();
   const [chapterId, setChapterId] = useState(initialChapter ?? NANIKIRU_CHAPTERS[0]);
   const [problems, setProblems] = useState<Problem[]>(() => generateProblemSet(chapterId));
   const [index, setIndex] = useState(0);
@@ -87,8 +83,8 @@ export function UnitTestScreen({ initialChapter }: UnitTestScreenProps = {}) {
     return (
       <Screen>
         <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
-        <Text style={styles.title}>단원평가 결과 ({CHAPTER_LABELS[chapterId] ?? chapterId})</Text>
-        <Text style={[styles.result, { color: passed ? '#1e8449' : '#c0392b' }]}>{passed ? '합격!' : '불합격'}</Text>
+        <Heading>단원평가 결과 ({CHAPTER_LABELS[chapterId] ?? chapterId})</Heading>
+        <Text style={[styles.result, { color: passed ? theme.accent : theme.danger }]}>{passed ? '합격!' : '불합격'}</Text>
         <Body>
           최선(S등급) 선택: {correctCount} / {TOTAL_PROBLEMS} ({Math.round((correctCount / TOTAL_PROBLEMS) * 100)}%)
         </Body>
@@ -101,13 +97,13 @@ export function UnitTestScreen({ initialChapter }: UnitTestScreenProps = {}) {
   return (
     <Screen>
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
-      <Text style={styles.title}>단원평가</Text>
+      <Heading>단원평가</Heading>
 
-      <ButtonRow>
+      <TabRow>
         {NANIKIRU_CHAPTERS.map((id) => (
-          <Button key={id} title={CHAPTER_LABELS[id] ?? id} onPress={() => switchChapter(id)} disabled={chapterId === id} />
+          <Tab key={id} label={CHAPTER_LABELS[id] ?? id} active={chapterId === id} onPress={() => switchChapter(id)} />
         ))}
-      </ButtonRow>
+      </TabRow>
 
       <Body>
         {index + 1} / {TOTAL_PROBLEMS} 문제 (답변 완료: {answeredCount})
@@ -117,7 +113,7 @@ export function UnitTestScreen({ initialChapter }: UnitTestScreenProps = {}) {
       <HandView key={problem.id} hand={problem.hand} interactive onSelectDiscard={handleSelectTile} />
 
       {selectedAnswer && (
-        <Text style={styles.answer}>
+        <Text style={[styles.answer, { color: theme.text }]}>
           {tileIndexToName(selectedAnswer.tile)} 버림 — 등급 {selectedAnswer.grade}
         </Text>
       )}
@@ -133,7 +129,6 @@ export function UnitTestScreen({ initialChapter }: UnitTestScreenProps = {}) {
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
   result: { fontSize: 20, fontWeight: '700', marginBottom: 8 },
   answer: { marginVertical: 12 },
 });

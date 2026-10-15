@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { HandView } from '../components/HandView';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Button, ButtonRow, Screen } from '../components/ui';
+import { Body, Button, Heading, Screen, Tab, TabRow } from '../components/ui';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { tileIndexToName } from '../engine/tileCodec';
 import { generateNanikiruProblem } from '../problems/generator';
@@ -10,6 +10,7 @@ import type { GradedAnswer, Problem } from '../problems/types';
 import { loadOrCreateChapterProgress, recordFixedProblemCleared, recordGeneratedAttempt } from '../progress/store';
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, CHAPTER_THEORY_TAG, getFixedProblems } from './fixedProblems';
 import { addWrongAnswer } from './wrongAnswerQueue';
+import { useTheme } from '../theme';
 
 type Mode = 'fixed' | 'generated';
 
@@ -26,6 +27,7 @@ interface TrainingScreenProps {
 }
 
 export function TrainingScreen({ initialChapter }: TrainingScreenProps = {}) {
+  const theme = useTheme();
   const [chapterId, setChapterId] = useState(initialChapter ?? NANIKIRU_CHAPTERS[0]);
   const fixedProblems = getFixedProblems(chapterId);
   const [mode, setMode] = useState<Mode>('fixed');
@@ -78,18 +80,18 @@ export function TrainingScreen({ initialChapter }: TrainingScreenProps = {}) {
   return (
     <Screen>
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
-      <Text style={styles.title}>본훈련</Text>
+      <Heading>본훈련</Heading>
 
-      <ButtonRow>
+      <TabRow>
         {NANIKIRU_CHAPTERS.map((id) => (
-          <Button key={id} title={CHAPTER_LABELS[id] ?? id} onPress={() => switchChapter(id)} disabled={chapterId === id} />
+          <Tab key={id} label={CHAPTER_LABELS[id] ?? id} active={chapterId === id} onPress={() => switchChapter(id)} />
         ))}
-      </ButtonRow>
+      </TabRow>
 
-      <ButtonRow>
-        <Button title="고정문제은행" onPress={() => switchMode('fixed')} disabled={mode === 'fixed'} />
-        <Button title="임의생성" onPress={() => switchMode('generated')} disabled={mode === 'generated'} />
-      </ButtonRow>
+      <TabRow>
+        <Tab label="고정문제은행" active={mode === 'fixed'} onPress={() => switchMode('fixed')} />
+        <Tab label="임의생성" active={mode === 'generated'} onPress={() => switchMode('generated')} />
+      </TabRow>
 
       <Body>
         {mode === 'fixed'
@@ -103,10 +105,10 @@ export function TrainingScreen({ initialChapter }: TrainingScreenProps = {}) {
 
       {selectedAnswer && (
         <>
-          <Text style={styles.answerTitle}>
+          <Text style={[styles.answerTitle, { color: theme.heading }]}>
             {tileIndexToName(selectedTile as number)} 버림 — 등급 {selectedAnswer.grade}
           </Text>
-          <Text style={styles.answerReason}>{selectedAnswer.reason}</Text>
+          <Text style={[styles.answerReason, { color: theme.text }]}>{selectedAnswer.reason}</Text>
         </>
       )}
 
@@ -116,7 +118,6 @@ export function TrainingScreen({ initialChapter }: TrainingScreenProps = {}) {
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
   answerTitle: { fontWeight: '700', marginTop: 12 },
   answerReason: { marginBottom: 12 },
 });

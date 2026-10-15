@@ -2,13 +2,15 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Tile } from '../components/Tile';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Screen } from '../components/ui';
+import { Body, Heading, Screen } from '../components/ui';
 import { INTRO_APP_NAME } from '../branding';
 import { expandHand34 } from '../ui/tileDisplay';
 import { tileNameToIndex } from '../engine/tileCodec';
 import { YAKU_CATALOG } from './yakuCatalog';
+import { useTheme } from '../theme';
 
 export function ReverseYakuExplorerScreen() {
+  const theme = useTheme();
   const [selectedKey, setSelectedKey] = useState(YAKU_CATALOG[0].key);
   const entry = YAKU_CATALOG.find((e) => e.key === selectedKey) ?? YAKU_CATALOG[0];
 
@@ -30,22 +32,28 @@ export function ReverseYakuExplorerScreen() {
   return (
     <Screen>
       <AppBrand>{INTRO_APP_NAME}</AppBrand>
-      <Text style={styles.title}>역방향 탐색기</Text>
+      <Heading>역방향 탐색기</Heading>
       <Body>역을 선택하면 조건을 만족시키는 핵심 패가 강조 표시됩니다.</Body>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {YAKU_CATALOG.map((e) => (
-          <Pressable
-            key={e.key}
-            onPress={() => setSelectedKey(e.key)}
-            style={[styles.chip, e.key === selectedKey && styles.chipActive]}
-          >
-            <Text style={e.key === selectedKey ? styles.chipTextActive : styles.chipText}>{e.name}</Text>
-          </Pressable>
-        ))}
+        {YAKU_CATALOG.map((e) => {
+          const active = e.key === selectedKey;
+          return (
+            <Pressable
+              key={e.key}
+              onPress={() => setSelectedKey(e.key)}
+              style={[
+                styles.chip,
+                { borderColor: active ? theme.accent : theme.border, backgroundColor: active ? theme.accentSoft : theme.surface },
+              ]}
+            >
+              <Text style={{ color: active ? theme.accent : theme.text, fontWeight: active ? '700' : '500' }}>{e.name}</Text>
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
-      <Text style={styles.condition}>{entry.condition}</Text>
+      <Text style={[styles.condition, { color: theme.text }]}>{entry.condition}</Text>
 
       <View style={styles.grid}>
         {tiles.map((tileIndex, position) => (
@@ -57,19 +65,14 @@ export function ReverseYakuExplorerScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
   chipRow: { marginBottom: 12 },
   chip: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e0dac6',
     marginRight: 8,
   },
-  chipActive: { backgroundColor: '#2471a3', borderColor: '#2471a3' },
-  chipText: { color: '#4a4530' },
-  chipTextActive: { color: '#fff', fontWeight: '700' },
   condition: { marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
 });

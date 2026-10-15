@@ -3,6 +3,7 @@ import { loadAllChapterProgress } from '../progress/store';
 import { INTRO_APP_NAME, NANIKIRU_APP_NAME } from '../branding';
 import { Body, Button, ButtonRow, Heading, Screen } from '../components/ui';
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS } from '../nanikiru/fixedProblems';
+import { AppThemeProvider, spacing, useTheme } from '../theme';
 
 export type IntroScreen =
   | 'tile-sort'
@@ -25,6 +26,7 @@ interface HomeScreenProps {
 }
 
 export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps) {
+  const theme = useTheme();
   const progress = loadAllChapterProgress([...NANIKIRU_CHAPTERS]);
 
   return (
@@ -32,35 +34,39 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
       <Heading>{INTRO_APP_NAME}</Heading>
 
       {allMissionsCompleted && (
-        <View style={styles.banner}>
-          <Text style={styles.bannerText}>모든 미션을 완료했습니다!</Text>
-          <Button title="엔딩 보러 가기" onPress={() => onNavigate('ending')} />
+        <View style={[styles.banner, { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}>
+          <Text style={[styles.bannerText, { color: theme.heading }]}>모든 미션을 완료했습니다!</Text>
+          <Button title="엔딩 보러 가기" onPress={() => onNavigate('ending')} variant="primary" />
         </View>
       )}
 
-      <Text style={styles.sectionTitle}>챕터 진행률</Text>
-      <View style={styles.table}>
-        <View style={[styles.row, styles.headerRow]}>
-          <Text style={[styles.cell, styles.headerCell]}>챕터</Text>
-          <Text style={[styles.cell, styles.headerCell]}>고정문제</Text>
-          <Text style={[styles.cell, styles.headerCell]}>단원평가</Text>
-          <Text style={[styles.cell, styles.headerCell]}>상태</Text>
+      <Text style={[styles.sectionTitle, { color: theme.heading }]}>챕터 진행률</Text>
+      <View style={[styles.table, { borderColor: theme.border }]}>
+        <View style={[styles.row, styles.headerRow, { borderTopColor: theme.border, backgroundColor: theme.bg }]}>
+          <Text style={[styles.cell, styles.headerCell, { color: theme.heading }]}>챕터</Text>
+          <Text style={[styles.cell, styles.headerCell, { color: theme.heading }]}>고정문제</Text>
+          <Text style={[styles.cell, styles.headerCell, { color: theme.heading }]}>단원평가</Text>
+          <Text style={[styles.cell, styles.headerCell, { color: theme.heading }]}>상태</Text>
         </View>
         {NANIKIRU_CHAPTERS.map((chapterId, i) => {
           const p = progress[chapterId];
           const isAccessible = i === 0 || Boolean(progress[NANIKIRU_CHAPTERS[i - 1]]?.unlockedNextChapter);
           return (
-            <View key={chapterId} style={styles.row}>
-              <Text style={styles.cell}>{CHAPTER_LABELS[chapterId] ?? chapterId}</Text>
-              <Text style={styles.cell}>{p ? `${p.fixedPoolCleared}/${p.fixedPoolTotal}` : '0/-'}</Text>
-              <Text style={styles.cell}>{p?.unitTestPassed ? '합격' : '미응시'}</Text>
-              <Text style={styles.cell}>{isAccessible ? '열림' : '잠김'}</Text>
+            <View key={chapterId} style={[styles.row, { borderTopColor: theme.border }]}>
+              <Text style={[styles.cell, { color: theme.text }]}>{CHAPTER_LABELS[chapterId] ?? chapterId}</Text>
+              <Text style={[styles.cell, { color: theme.text }]}>
+                {p ? `${p.fixedPoolCleared}/${p.fixedPoolTotal}` : '0/-'}
+              </Text>
+              <Text style={[styles.cell, { color: theme.text }]}>{p?.unitTestPassed ? '합격' : '미응시'}</Text>
+              <Text style={[styles.cell, { color: isAccessible ? theme.text : theme.textMuted }]}>
+                {isAccessible ? '열림' : '잠김'}
+              </Text>
             </View>
           );
         })}
       </View>
 
-      <Text style={styles.sectionTitle}>미션</Text>
+      <Text style={[styles.sectionTitle, { color: theme.heading }]}>미션</Text>
       <ButtonRow>
         <Button title="패 종류 골라내기" onPress={() => onNavigate('tile-sort')} />
         <Button title="슌쯔 만들기" onPress={() => onNavigate('shuntsu')} />
@@ -70,7 +76,18 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
         <Button title="역방향 탐색기" onPress={() => onNavigate('reverse-explorer')} />
       </ButtonRow>
 
-      <Text style={styles.sectionTitle}>{NANIKIRU_APP_NAME}</Text>
+      <AppThemeProvider tone="nanikiru">
+        <NanikiruSection onNavigate={onNavigate} />
+      </AppThemeProvider>
+    </Screen>
+  );
+}
+
+function NanikiruSection({ onNavigate }: Pick<HomeScreenProps, 'onNavigate'>) {
+  const theme = useTheme();
+  return (
+    <>
+      <Text style={[styles.sectionTitle, { color: theme.accent }]}>{NANIKIRU_APP_NAME}</Text>
       <ButtonRow>
         <Button title="손패 뷰어" onPress={() => onNavigate('nanikiru')} />
         <Button title="이론학습" onPress={() => onNavigate('theory')} />
@@ -79,25 +96,23 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
         <Button title="오답노트" onPress={() => onNavigate('wrong-answers')} />
         <Button title="종합응용" onPress={() => onNavigate('comprehensive')} />
       </ButtonRow>
-    </Screen>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   banner: {
-    backgroundColor: '#f4f3ec',
     borderWidth: 1,
-    borderColor: '#e0dac6',
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    gap: 8,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
   },
   bannerText: { fontWeight: '700' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8, marginTop: 8 },
-  table: { borderWidth: 1, borderColor: '#e0dac6', borderRadius: 8, marginBottom: 20, overflow: 'hidden' },
-  row: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#e0dac6' },
-  headerRow: { borderTopWidth: 0, backgroundColor: '#f4f3ec' },
-  cell: { flex: 1, padding: 8, textAlign: 'center' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: spacing.sm, marginTop: spacing.sm },
+  table: { borderWidth: 1, borderRadius: 8, marginBottom: spacing.xl, overflow: 'hidden' },
+  row: { flexDirection: 'row', borderTopWidth: 1 },
+  headerRow: { borderTopWidth: 0 },
+  cell: { flex: 1, padding: spacing.sm, textAlign: 'center' },
   headerCell: { fontWeight: '700' },
 });

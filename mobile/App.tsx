@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, StyleSheet } from 'react-native';
 import { HomeScreen, type IntroScreen } from './src/intro/HomeScreen';
@@ -16,17 +16,35 @@ import { UnitTestScreen } from './src/nanikiru/UnitTestScreen';
 import { WrongAnswerScreen } from './src/nanikiru/WrongAnswerScreen';
 import { ComprehensiveScreen } from './src/nanikiru/ComprehensiveScreen';
 import { Button } from './src/components/ui';
+import { AppThemeProvider, useTheme, type AppTone } from './src/theme';
 
 type Screen = 'home' | IntroScreen;
 
-export default function App() {
-  const [screen, setScreen] = useState<Screen>('home');
-  const [completed, setCompleted] = useState({ tileSort: false, shuntsu: false });
+const NANIKIRU_SCREENS = new Set<Screen>([
+  'nanikiru',
+  'theory',
+  'training',
+  'unit-test',
+  'wrong-answers',
+  'comprehensive',
+]);
 
-  const allMissionsCompleted = completed.tileSort && completed.shuntsu;
+function toneForScreen(screen: Screen): AppTone {
+  return NANIKIRU_SCREENS.has(screen) ? 'nanikiru' : 'intro';
+}
+
+interface AppShellProps {
+  screen: Screen;
+  setScreen: (screen: Screen) => void;
+  setCompleted: Dispatch<SetStateAction<{ tileSort: boolean; shuntsu: boolean }>>;
+  allMissionsCompleted: boolean;
+}
+
+function AppShell({ screen, setScreen, setCompleted, allMissionsCompleted }: AppShellProps) {
+  const theme = useTheme();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       {screen !== 'home' && (
         <SafeAreaView style={styles.backBar}>
           <Button title="← 홈으로" onPress={() => setScreen('home')} />
@@ -57,7 +75,25 @@ export default function App() {
   );
 }
 
+export default function App() {
+  const [screen, setScreen] = useState<Screen>('home');
+  const [completed, setCompleted] = useState({ tileSort: false, shuntsu: false });
+
+  const allMissionsCompleted = completed.tileSort && completed.shuntsu;
+
+  return (
+    <AppThemeProvider tone={toneForScreen(screen)}>
+      <AppShell
+        screen={screen}
+        setScreen={setScreen}
+        setCompleted={setCompleted}
+        allMissionsCompleted={allMissionsCompleted}
+      />
+    </AppThemeProvider>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   backBar: { paddingHorizontal: 20, paddingTop: 8 },
 });
