@@ -2,7 +2,7 @@ import { useState, useSyncExternalStore } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { HandView } from '../components/HandView';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Button, Card, Heading, Screen, Tab, TabRow } from '../components/ui';
+import { Body, Button, Card, Dropdown, Heading, Screen } from '../components/ui';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { tileIndexToName } from '../engine/tileCodec';
 import { clearWrongAnswers, getWrongAnswers, subscribeWrongAnswers } from './wrongAnswerQueue';
@@ -35,23 +35,21 @@ export function WrongAnswerScreen() {
     clearWrongAnswers(chapterFilter === ALL_CHAPTERS ? undefined : chapterFilter);
   };
 
+  const chapterOptions = [
+    { value: ALL_CHAPTERS, label: `전체 (${allEntries.length})` },
+    ...NANIKIRU_CHAPTERS.map((id) => ({
+      value: id,
+      label: `${CHAPTER_LABELS[id] ?? id} (${countByChapter.get(id) ?? 0})`,
+    })),
+  ];
+
   return (
     <Screen>
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <Heading>오답노트</Heading>
       <Body>본훈련에서 S등급이 아닌 버림을 선택하면 여기에 쌓입니다.</Body>
 
-      <TabRow>
-        <Tab label={`전체 (${allEntries.length})`} active={chapterFilter === ALL_CHAPTERS} onPress={() => setChapterFilter(ALL_CHAPTERS)} />
-        {NANIKIRU_CHAPTERS.map((id) => (
-          <Tab
-            key={id}
-            label={`${CHAPTER_LABELS[id] ?? id} (${countByChapter.get(id) ?? 0})`}
-            active={chapterFilter === id}
-            onPress={() => setChapterFilter(id)}
-          />
-        ))}
-      </TabRow>
+      <Dropdown value={chapterFilter} options={chapterOptions} onChange={setChapterFilter} placeholder="챕터 필터..." />
 
       {entries.length === 0 ? (
         <Text style={[styles.dim, { color: theme.textMuted }]}>

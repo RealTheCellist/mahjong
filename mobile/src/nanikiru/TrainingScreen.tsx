@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { HandView } from '../components/HandView';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Button, Heading, Screen, Tab, TabRow } from '../components/ui';
+import { Body, Button, Dropdown, Heading, Screen } from '../components/ui';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { tileIndexToName } from '../engine/tileCodec';
 import { generateNanikiruProblem } from '../problems/generator';
@@ -11,6 +11,13 @@ import { loadOrCreateChapterProgress, recordFixedProblemCleared, recordGenerated
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, CHAPTER_THEORY_TAG, getFixedProblems } from './fixedProblems';
 import { addWrongAnswer } from './wrongAnswerQueue';
 import { useTheme } from '../theme';
+
+const CHAPTER_OPTIONS = NANIKIRU_CHAPTERS.map((id) => ({ value: id, label: CHAPTER_LABELS[id] ?? id }));
+
+const MODE_OPTIONS = [
+  { value: 'fixed', label: '고정문제은행' },
+  { value: 'generated', label: '임의생성' },
+];
 
 type Mode = 'fixed' | 'generated';
 
@@ -82,16 +89,9 @@ export function TrainingScreen({ initialChapter }: TrainingScreenProps = {}) {
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <Heading>본훈련</Heading>
 
-      <TabRow>
-        {NANIKIRU_CHAPTERS.map((id) => (
-          <Tab key={id} label={CHAPTER_LABELS[id] ?? id} active={chapterId === id} onPress={() => switchChapter(id)} />
-        ))}
-      </TabRow>
+      <Dropdown value={chapterId} options={CHAPTER_OPTIONS} onChange={switchChapter} placeholder="챕터 선택..." />
 
-      <TabRow>
-        <Tab label="고정문제은행" active={mode === 'fixed'} onPress={() => switchMode('fixed')} />
-        <Tab label="임의생성" active={mode === 'generated'} onPress={() => switchMode('generated')} />
-      </TabRow>
+      <Dropdown value={mode} options={MODE_OPTIONS} onChange={(v) => switchMode(v as Mode)} placeholder="모드 선택..." />
 
       <Body>
         {mode === 'fixed'

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { radius, spacing, type, useTheme } from '../theme';
 
@@ -57,34 +57,57 @@ export function ButtonRow({ children }: { children: ReactNode }) {
   return <View style={styles.row}>{children}</View>;
 }
 
-/** 챕터/모드 선택 칩. Button과 달리 "선택됨"을 음영이 아니라 포인트 컬러로 표시한다 */
-interface TabProps {
+export interface DropdownOption {
+  value: string;
   label: string;
-  active: boolean;
-  onPress: () => void;
 }
 
-export function Tab({ label, active, onPress }: TabProps) {
+interface DropdownProps {
+  /** 현재 선택값. 생략하면 placeholder만 보여주는 "메뉴형" 드롭다운으로 동작한다 */
+  value?: string;
+  options: DropdownOption[];
+  onChange: (value: string) => void;
+  placeholder: string;
+}
+
+/** 버튼 그리드 대신 쓰는 드롭다운. 눌렀을 때 바로 아래에 목록을 펼친다 */
+export function Dropdown({ value, options, onChange, placeholder }: DropdownProps) {
   const theme = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={active}
-      style={[
-        styles.tab,
-        {
-          backgroundColor: active ? theme.accentSoft : theme.surface,
-          borderColor: active ? theme.accent : theme.border,
-        },
-      ]}
-    >
-      <Text style={[styles.tabText, { color: active ? theme.accent : theme.textMuted }]}>{label}</Text>
-    </Pressable>
-  );
-}
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.value === value);
 
-export function TabRow({ children }: { children: ReactNode }) {
-  return <View style={styles.row}>{children}</View>;
+  return (
+    <View style={styles.dropdownWrap}>
+      <Pressable
+        onPress={() => setOpen((o) => !o)}
+        style={[styles.dropdownTrigger, { borderColor: theme.border, backgroundColor: theme.surface }]}
+      >
+        <Text style={{ color: selected ? theme.text : theme.textMuted }}>{selected ? selected.label : placeholder}</Text>
+        <Text style={{ color: theme.textMuted }}>{open ? '▲' : '▼'}</Text>
+      </Pressable>
+      {open && (
+        <View style={[styles.dropdownList, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+          {options.map((opt) => {
+            const active = opt.value === value;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                style={[styles.dropdownItem, active && { backgroundColor: theme.accentSoft }]}
+              >
+                <Text style={{ color: active ? theme.accent : theme.text, fontWeight: active ? '700' : '400' }}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
 }
 
 export function Card({ children }: { children: ReactNode }) {
@@ -108,12 +131,22 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.85 },
   buttonText: { fontWeight: '700' },
   row: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginBottom: spacing.md },
-  tab: {
+  dropdownWrap: { marginBottom: spacing.md },
+  dropdownTrigger: {
     borderWidth: 1,
-    paddingVertical: 8,
+    borderRadius: radius.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  tabText: { fontWeight: '600', fontSize: 13 },
+  dropdownList: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    marginTop: spacing.xs,
+    overflow: 'hidden',
+  },
+  dropdownItem: { paddingVertical: 10, paddingHorizontal: spacing.md },
   card: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md },
 });

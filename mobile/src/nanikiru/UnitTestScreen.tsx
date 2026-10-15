@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { HandView } from '../components/HandView';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Button, Heading, Screen, Tab, TabRow } from '../components/ui';
+import { Body, Button, Dropdown, Heading, Screen } from '../components/ui';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { tileIndexToName } from '../engine/tileCodec';
 import { generateNanikiruProblem } from '../problems/generator';
@@ -10,6 +10,8 @@ import type { AnswerGrade, Problem } from '../problems/types';
 import { markUnitTestResult } from '../progress/store';
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, CHAPTER_THEORY_TAG, getFixedProblems } from './fixedProblems';
 import { useTheme } from '../theme';
+
+const CHAPTER_OPTIONS = NANIKIRU_CHAPTERS.map((id) => ({ value: id, label: CHAPTER_LABELS[id] ?? id }));
 
 const TOTAL_PROBLEMS = 10;
 const PASS_RATIO = 0.7;
@@ -99,11 +101,7 @@ export function UnitTestScreen({ initialChapter }: UnitTestScreenProps = {}) {
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <Heading>단원평가</Heading>
 
-      <TabRow>
-        {NANIKIRU_CHAPTERS.map((id) => (
-          <Tab key={id} label={CHAPTER_LABELS[id] ?? id} active={chapterId === id} onPress={() => switchChapter(id)} />
-        ))}
-      </TabRow>
+      <Dropdown value={chapterId} options={CHAPTER_OPTIONS} onChange={switchChapter} placeholder="챕터 선택..." />
 
       <Body>
         {index + 1} / {TOTAL_PROBLEMS} 문제 (답변 완료: {answeredCount})

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Button, ButtonRow, Card, Heading, Screen, Tab, TabRow } from '../components/ui';
+import { Body, Button, ButtonRow, Card, Dropdown, Heading, Screen } from '../components/ui';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { getTheorySlides } from './theorySlides';
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS } from './fixedProblems';
 import { useTheme } from '../theme';
+
+const CHAPTER_OPTIONS = NANIKIRU_CHAPTERS.map((id) => ({ value: id, label: CHAPTER_LABELS[id] ?? id }));
 
 export function TheorySlidesScreen() {
   const theme = useTheme();
@@ -27,11 +29,7 @@ export function TheorySlidesScreen() {
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <Heading>이론학습</Heading>
 
-      <TabRow>
-        {NANIKIRU_CHAPTERS.map((id) => (
-          <Tab key={id} label={CHAPTER_LABELS[id] ?? id} active={chapterId === id} onPress={() => switchChapter(id)} />
-        ))}
-      </TabRow>
+      <Dropdown value={chapterId} options={CHAPTER_OPTIONS} onChange={switchChapter} placeholder="챕터 선택..." />
 
       <Body>
         {index + 1} / {slides.length}

@@ -1,9 +1,27 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { loadAllChapterProgress } from '../progress/store';
 import { INTRO_APP_NAME, NANIKIRU_APP_NAME } from '../branding';
-import { Body, Button, ButtonRow, Heading, Screen } from '../components/ui';
+import { Button, Dropdown, Heading, Screen, type DropdownOption } from '../components/ui';
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS } from '../nanikiru/fixedProblems';
 import { AppThemeProvider, spacing, useTheme } from '../theme';
+
+const MISSION_OPTIONS: DropdownOption[] = [
+  { value: 'tile-sort', label: '패 종류 골라내기' },
+  { value: 'shuntsu', label: '슌쯔 만들기' },
+  { value: 'forward-checker', label: '정방향 체커' },
+  { value: 'yaku-dictionary', label: '역 카드 사전' },
+  { value: 'yaku-table', label: '조건 비교 테이블' },
+  { value: 'reverse-explorer', label: '역방향 탐색기' },
+];
+
+const NANIKIRU_OPTIONS: DropdownOption[] = [
+  { value: 'nanikiru', label: '손패 뷰어' },
+  { value: 'theory', label: '이론학습' },
+  { value: 'training', label: '본훈련' },
+  { value: 'unit-test', label: '단원평가' },
+  { value: 'wrong-answers', label: '오답노트' },
+  { value: 'comprehensive', label: '종합응용' },
+];
 
 export type IntroScreen =
   | 'tile-sort'
@@ -67,14 +85,7 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
       </View>
 
       <Text style={[styles.sectionTitle, { color: theme.heading }]}>미션</Text>
-      <ButtonRow>
-        <Button title="패 종류 골라내기" onPress={() => onNavigate('tile-sort')} />
-        <Button title="슌쯔 만들기" onPress={() => onNavigate('shuntsu')} />
-        <Button title="정방향 체커" onPress={() => onNavigate('forward-checker')} />
-        <Button title="역 카드 사전" onPress={() => onNavigate('yaku-dictionary')} />
-        <Button title="조건 비교 테이블" onPress={() => onNavigate('yaku-table')} />
-        <Button title="역방향 탐색기" onPress={() => onNavigate('reverse-explorer')} />
-      </ButtonRow>
+      <Dropdown placeholder="미션 선택..." options={MISSION_OPTIONS} onChange={(v) => onNavigate(v as IntroScreen)} />
 
       <AppThemeProvider tone="nanikiru">
         <NanikiruSection onNavigate={onNavigate} />
@@ -88,14 +99,7 @@ function NanikiruSection({ onNavigate }: Pick<HomeScreenProps, 'onNavigate'>) {
   return (
     <>
       <Text style={[styles.sectionTitle, { color: theme.accent }]}>{NANIKIRU_APP_NAME}</Text>
-      <ButtonRow>
-        <Button title="손패 뷰어" onPress={() => onNavigate('nanikiru')} />
-        <Button title="이론학습" onPress={() => onNavigate('theory')} />
-        <Button title="본훈련" onPress={() => onNavigate('training')} />
-        <Button title="단원평가" onPress={() => onNavigate('unit-test')} />
-        <Button title="오답노트" onPress={() => onNavigate('wrong-answers')} />
-        <Button title="종합응용" onPress={() => onNavigate('comprehensive')} />
-      </ButtonRow>
+      <Dropdown placeholder="나니키루 메뉴 선택..." options={NANIKIRU_OPTIONS} onChange={(v) => onNavigate(v as IntroScreen)} />
     </>
   );
 }

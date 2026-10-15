@@ -2,13 +2,15 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { HandView } from '../components/HandView';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Button, Heading, Screen, Tab, TabRow } from '../components/ui';
+import { Body, Button, Dropdown, Heading, Screen } from '../components/ui';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { calculateShanten } from '../engine/shanten';
 import { calculateUkeire } from '../engine/ukeire';
 import { tileIndexToName } from '../engine/tileCodec';
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, getFixedProblems } from './fixedProblems';
 import { useTheme } from '../theme';
+
+const CHAPTER_OPTIONS = NANIKIRU_CHAPTERS.map((id) => ({ value: id, label: CHAPTER_LABELS[id] ?? id }));
 
 export function NanikiruDemo() {
   const theme = useTheme();
@@ -47,11 +49,7 @@ export function NanikiruDemo() {
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <Heading>손패 뷰어</Heading>
 
-      <TabRow>
-        {NANIKIRU_CHAPTERS.map((id) => (
-          <Tab key={id} label={CHAPTER_LABELS[id] ?? id} active={chapterId === id} onPress={() => switchChapter(id)} />
-        ))}
-      </TabRow>
+      <Dropdown value={chapterId} options={CHAPTER_OPTIONS} onChange={switchChapter} placeholder="챕터 선택..." />
 
       <Body>패를 눌러서 버릴 패를 선택해보세요.</Body>
 
