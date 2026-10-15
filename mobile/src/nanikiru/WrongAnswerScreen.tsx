@@ -11,10 +11,14 @@ import { useTheme } from '../theme';
 
 const ALL_CHAPTERS = '전체';
 
-export function WrongAnswerScreen() {
+interface WrongAnswerScreenProps {
+  initialChapter?: string;
+}
+
+export function WrongAnswerScreen({ initialChapter }: WrongAnswerScreenProps = {}) {
   const theme = useTheme();
   const allEntries = useSyncExternalStore(subscribeWrongAnswers, getWrongAnswers);
-  const [chapterFilter, setChapterFilter] = useState<string>(ALL_CHAPTERS);
+  const [chapterFilter, setChapterFilter] = useState<string>(initialChapter ?? ALL_CHAPTERS);
 
   const entries =
     chapterFilter === ALL_CHAPTERS ? allEntries : allEntries.filter((e) => e.problem.chapter === chapterFilter);

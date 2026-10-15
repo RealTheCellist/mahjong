@@ -14,14 +14,22 @@ export interface NavTreeSection {
   items: NavTreeItem[];
 }
 
+export interface NavTopItem {
+  value: string;
+  label: string;
+  tone: AppTone;
+}
+
 interface NavMenuProps {
+  /** 하위 항목 없이 바로 이동하는 최상단 항목 (홈 바로 아래에 표시) */
+  topItems?: NavTopItem[];
   sections: NavTreeSection[];
   onNavigateHome: () => void;
   onNavigate: (value: string) => void;
 }
 
 /** 큰 제목(앱 섹션) 간 이동을 위한 삼선 메뉴. 누르면 트리 구조 메뉴가 펼쳐진다 */
-export function NavMenu({ sections, onNavigateHome, onNavigate }: NavMenuProps) {
+export function NavMenu({ topItems = [], sections, onNavigateHome, onNavigate }: NavMenuProps) {
   const theme = useTheme();
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const [open, setOpen] = useState(false);
@@ -62,6 +70,12 @@ export function NavMenu({ sections, onNavigateHome, onNavigate }: NavMenuProps) 
             >
               <Text style={[styles.homeText, { color: theme.heading }]}>🏠 홈</Text>
             </Pressable>
+
+            {topItems.map((item) => (
+              <Pressable key={item.value} onPress={() => handleNavigate(item.value)} style={styles.homeItem}>
+                <Text style={[styles.homeText, { color: getTheme(scheme, item.tone).accent }]}>{item.label}</Text>
+              </Pressable>
+            ))}
 
             {sections.map((section) => {
               const isOpen = expanded.has(section.key);

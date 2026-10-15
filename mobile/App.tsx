@@ -9,30 +9,18 @@ import { ForwardCheckerScreen } from './src/intro/ForwardCheckerScreen';
 import { YakuDictionaryScreen } from './src/intro/YakuDictionaryScreen';
 import { YakuTableScreen } from './src/intro/YakuTableScreen';
 import { ReverseYakuExplorerScreen } from './src/intro/ReverseYakuExplorerScreen';
-import { NanikiruDemo } from './src/nanikiru/NanikiruDemo';
-import { TrainingScreen } from './src/nanikiru/TrainingScreen';
-import { TheorySlidesScreen } from './src/nanikiru/TheorySlidesScreen';
-import { UnitTestScreen } from './src/nanikiru/UnitTestScreen';
-import { WrongAnswerScreen } from './src/nanikiru/WrongAnswerScreen';
-import { ComprehensiveScreen } from './src/nanikiru/ComprehensiveScreen';
-import { NavMenu, type NavTreeSection } from './src/components/NavMenu';
+import { LabApp } from './src/nanikiru/LabApp';
+import { NavMenu, type NavTopItem, type NavTreeSection } from './src/components/NavMenu';
 import { AppThemeProvider, useTheme, type AppTone } from './src/theme';
 import { INTRO_APP_NAME, NANIKIRU_APP_NAME } from './src/branding';
 
-type Screen = 'home' | IntroScreen;
-
-const NANIKIRU_SCREENS = new Set<Screen>([
-  'nanikiru',
-  'theory',
-  'training',
-  'unit-test',
-  'wrong-answers',
-  'comprehensive',
-]);
+type Screen = 'home' | IntroScreen | 'nanikiru-lab';
 
 function toneForScreen(screen: Screen): AppTone {
-  return NANIKIRU_SCREENS.has(screen) ? 'nanikiru' : 'intro';
+  return screen === 'nanikiru-lab' ? 'nanikiru' : 'intro';
 }
+
+const NAV_TOP_ITEMS: NavTopItem[] = [{ value: 'nanikiru-lab', label: `🀄 ${NANIKIRU_APP_NAME}`, tone: 'nanikiru' }];
 
 const NAV_SECTIONS: NavTreeSection[] = [
   {
@@ -46,19 +34,6 @@ const NAV_SECTIONS: NavTreeSection[] = [
       { value: 'yaku-dictionary', label: '역 카드 사전' },
       { value: 'yaku-table', label: '조건 비교 테이블' },
       { value: 'reverse-explorer', label: '역방향 탐색기' },
-    ],
-  },
-  {
-    key: 'nanikiru',
-    label: NANIKIRU_APP_NAME,
-    tone: 'nanikiru',
-    items: [
-      { value: 'nanikiru', label: '손패 뷰어' },
-      { value: 'theory', label: '이론학습' },
-      { value: 'training', label: '본훈련' },
-      { value: 'unit-test', label: '단원평가' },
-      { value: 'wrong-answers', label: '오답노트' },
-      { value: 'comprehensive', label: '종합응용' },
     ],
   },
 ];
@@ -76,6 +51,7 @@ function AppShell({ screen, setScreen, setCompleted, allMissionsCompleted }: App
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <NavMenu
+        topItems={NAV_TOP_ITEMS}
         sections={NAV_SECTIONS}
         onNavigateHome={() => setScreen('home')}
         onNavigate={(value) => setScreen(value as Screen)}
@@ -88,17 +64,12 @@ function AppShell({ screen, setScreen, setCompleted, allMissionsCompleted }: App
       {screen === 'shuntsu' && (
         <ShuntsuMission onComplete={() => setCompleted((c) => ({ ...c, shuntsu: true }))} />
       )}
-      {screen === 'ending' && <EndingScreen onGoToNanikiru={() => setScreen('nanikiru')} />}
+      {screen === 'ending' && <EndingScreen onGoToNanikiru={() => setScreen('nanikiru-lab')} />}
       {screen === 'forward-checker' && <ForwardCheckerScreen />}
       {screen === 'yaku-dictionary' && <YakuDictionaryScreen />}
       {screen === 'yaku-table' && <YakuTableScreen />}
       {screen === 'reverse-explorer' && <ReverseYakuExplorerScreen />}
-      {screen === 'nanikiru' && <NanikiruDemo />}
-      {screen === 'theory' && <TheorySlidesScreen />}
-      {screen === 'training' && <TrainingScreen />}
-      {screen === 'unit-test' && <UnitTestScreen />}
-      {screen === 'wrong-answers' && <WrongAnswerScreen />}
-      {screen === 'comprehensive' && <ComprehensiveScreen />}
+      {screen === 'nanikiru-lab' && <LabApp />}
 
       <StatusBar style="auto" />
     </SafeAreaView>

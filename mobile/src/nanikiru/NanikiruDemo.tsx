@@ -12,9 +12,13 @@ import { useTheme } from '../theme';
 
 const CHAPTER_OPTIONS = NANIKIRU_CHAPTERS.map((id) => ({ value: id, label: CHAPTER_LABELS[id] ?? id }));
 
-export function NanikiruDemo() {
+interface NanikiruDemoProps {
+  initialChapter?: string;
+}
+
+export function NanikiruDemo({ initialChapter }: NanikiruDemoProps = {}) {
   const theme = useTheme();
-  const [chapterId, setChapterId] = useState<string>(NANIKIRU_CHAPTERS[0]);
+  const [chapterId, setChapterId] = useState<string>(initialChapter ?? NANIKIRU_CHAPTERS[0]);
   const [sampleIndex, setSampleIndex] = useState(0);
   const [discardIndex, setDiscardIndex] = useState<number | null>(null);
 

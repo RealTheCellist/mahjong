@@ -8,17 +8,11 @@ import { spacing, useTheme } from '../theme';
 export type IntroScreen =
   | 'tile-sort'
   | 'shuntsu'
-  | 'nanikiru'
   | 'ending'
   | 'forward-checker'
-  | 'training'
   | 'yaku-dictionary'
   | 'yaku-table'
-  | 'reverse-explorer'
-  | 'theory'
-  | 'unit-test'
-  | 'wrong-answers'
-  | 'comprehensive';
+  | 'reverse-explorer';
 
 interface HomeScreenProps {
   onNavigate: (screen: IntroScreen) => void;
