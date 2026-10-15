@@ -2,14 +2,19 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { HandView } from '../components/HandView';
 import { AppBrand } from '../components/AppBrand';
-import { Body, Button, ButtonRow, Screen } from '../components/ui';
+import { Body, Button, Screen } from '../components/ui';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { tileIndexToName } from '../engine/tileCodec';
 import { generateNanikiruProblem } from '../problems/generator';
 import type { GradedAnswer, Problem } from '../problems/types';
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, CHAPTER_THEORY_TAG } from './fixedProblems';
+import { getAccessibleChapters } from '../progress/store';
 
 const WIND_LABEL: Record<number, string> = { 27: '동', 28: '남', 29: '서', 30: '북' };
+
+function pickRandomChapter(pool: string[]): string {
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function pickProblem(chapterId: string): Problem {
   return generateNanikiruProblem({
@@ -20,8 +25,8 @@ function pickProblem(chapterId: string): Problem {
 }
 
 export function ComprehensiveScreen() {
-  const [chapterId, setChapterId] = useState<string>(NANIKIRU_CHAPTERS[0]);
-  const [problem, setProblem] = useState<Problem>(() => pickProblem(NANIKIRU_CHAPTERS[0]));
+  const accessibleChapters = useMemo(() => getAccessibleChapters([...NANIKIRU_CHAPTERS]), []);
+  const [problem, setProblem] = useState<Problem>(() => pickProblem(pickRandomChapter(accessibleChapters)));
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
 
   const selectedAnswer: GradedAnswer | undefined = useMemo(() => {
@@ -29,14 +34,8 @@ export function ComprehensiveScreen() {
     return problem.gradedAnswers?.find((a) => a.tile === selectedTile);
   }, [problem, selectedTile]);
 
-  const switchChapter = (nextChapterId: string) => {
-    setChapterId(nextChapterId);
-    setProblem(pickProblem(nextChapterId));
-    setSelectedTile(null);
-  };
-
   const handleNext = () => {
-    setProblem(pickProblem(chapterId));
+    setProblem(pickProblem(pickRandomChapter(accessibleChapters)));
     setSelectedTile(null);
   };
 
@@ -46,13 +45,12 @@ export function ComprehensiveScreen() {
     <Screen>
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <Text style={styles.title}>종합응용</Text>
-      <Body>순서·도라·자리바람까지 고려한 실전형 문제입니다.</Body>
+      <Body>
+        지금까지 배운 챕터({accessibleChapters.map((id) => CHAPTER_LABELS[id] ?? id).join(', ')})를 섞어서 출제하는 실전형
+        문제입니다.
+      </Body>
 
-      <ButtonRow>
-        {NANIKIRU_CHAPTERS.map((id) => (
-          <Button key={id} title={CHAPTER_LABELS[id] ?? id} onPress={() => switchChapter(id)} disabled={chapterId === id} />
-        ))}
-      </ButtonRow>
+      <Text style={styles.chapterBadge}>이번 문제: {CHAPTER_LABELS[problem.chapter] ?? problem.chapter} 유형</Text>
 
       {context && (
         <>
@@ -81,6 +79,7 @@ export function ComprehensiveScreen() {
 
 const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  chapterBadge: { fontWeight: '700', marginBottom: 8 },
   answerTitle: { fontWeight: '700', marginTop: 12 },
   answerReason: { marginBottom: 12 },
 });

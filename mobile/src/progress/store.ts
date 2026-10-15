@@ -123,3 +123,19 @@ export function markUnitTestResult(
 export function resetChapterProgress(chapterId: string, store?: KeyValueStore): void {
   resolveStore(store).removeItem(STORAGE_PREFIX + chapterId);
 }
+
+/**
+ * 지금까지 "배운" (접근 가능한) 챕터 목록을 반환한다.
+ * 0번째 챕터는 항상 접근 가능하고, 이후 챕터는 바로 이전 챕터가
+ * unlockedNextChapter 상태여야 접근 가능하다 (HomeScreen의 잠금 체인과 동일 규칙).
+ */
+export function getAccessibleChapters(chapterIds: string[], store?: KeyValueStore): string[] {
+  const progress = loadAllChapterProgress(chapterIds, store);
+  const accessible: string[] = [];
+  for (let i = 0; i < chapterIds.length; i += 1) {
+    const isAccessible = i === 0 || Boolean(progress[chapterIds[i - 1]]?.unlockedNextChapter);
+    if (!isAccessible) break;
+    accessible.push(chapterIds[i]);
+  }
+  return accessible;
+}
