@@ -1,27 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { loadAllChapterProgress } from '../progress/store';
-import { INTRO_APP_NAME, NANIKIRU_APP_NAME } from '../branding';
-import { Button, Dropdown, Heading, Screen, type DropdownOption } from '../components/ui';
+import { INTRO_APP_NAME } from '../branding';
+import { Button, Heading, Screen } from '../components/ui';
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS } from '../nanikiru/fixedProblems';
-import { AppThemeProvider, spacing, useTheme } from '../theme';
-
-const MISSION_OPTIONS: DropdownOption[] = [
-  { value: 'tile-sort', label: '패 종류 골라내기' },
-  { value: 'shuntsu', label: '슌쯔 만들기' },
-  { value: 'forward-checker', label: '정방향 체커' },
-  { value: 'yaku-dictionary', label: '역 카드 사전' },
-  { value: 'yaku-table', label: '조건 비교 테이블' },
-  { value: 'reverse-explorer', label: '역방향 탐색기' },
-];
-
-const NANIKIRU_OPTIONS: DropdownOption[] = [
-  { value: 'nanikiru', label: '손패 뷰어' },
-  { value: 'theory', label: '이론학습' },
-  { value: 'training', label: '본훈련' },
-  { value: 'unit-test', label: '단원평가' },
-  { value: 'wrong-answers', label: '오답노트' },
-  { value: 'comprehensive', label: '종합응용' },
-];
+import { spacing, useTheme } from '../theme';
 
 export type IntroScreen =
   | 'tile-sort'
@@ -50,6 +32,9 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
   return (
     <Screen>
       <Heading>{INTRO_APP_NAME}</Heading>
+      <Text style={{ color: theme.textMuted, marginBottom: spacing.md }}>
+        왼쪽 위 ☰ 메뉴에서 미션과 나니키루 연구소로 이동할 수 있습니다.
+      </Text>
 
       {allMissionsCompleted && (
         <View style={[styles.banner, { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}>
@@ -83,24 +68,7 @@ export function HomeScreen({ onNavigate, allMissionsCompleted }: HomeScreenProps
           );
         })}
       </View>
-
-      <Text style={[styles.sectionTitle, { color: theme.heading }]}>미션</Text>
-      <Dropdown placeholder="미션 선택..." options={MISSION_OPTIONS} onChange={(v) => onNavigate(v as IntroScreen)} />
-
-      <AppThemeProvider tone="nanikiru">
-        <NanikiruSection onNavigate={onNavigate} />
-      </AppThemeProvider>
     </Screen>
-  );
-}
-
-function NanikiruSection({ onNavigate }: Pick<HomeScreenProps, 'onNavigate'>) {
-  const theme = useTheme();
-  return (
-    <>
-      <Text style={[styles.sectionTitle, { color: theme.accent }]}>{NANIKIRU_APP_NAME}</Text>
-      <Dropdown placeholder="나니키루 메뉴 선택..." options={NANIKIRU_OPTIONS} onChange={(v) => onNavigate(v as IntroScreen)} />
-    </>
   );
 }
 
