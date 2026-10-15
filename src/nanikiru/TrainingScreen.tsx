@@ -8,16 +8,10 @@ import {
   recordFixedProblemCleared,
   recordGeneratedAttempt,
 } from '../progress/store';
-import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, getFixedProblems } from './fixedProblems';
+import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, CHAPTER_THEORY_TAG, getFixedProblems } from './fixedProblems';
 import { addWrongAnswer } from './wrongAnswerQueue';
 import { AppBrand } from '../components/AppBrand';
 import { NANIKIRU_APP_NAME } from '../branding';
-
-const CHAPTER_THEORY_TAG: Record<string, string[]> = {
-  '1-1': ['isolated-tile'],
-  '1-2': ['taatsu-compare'],
-  '2-1': ['ukeire-efficiency'],
-};
 
 type Mode = 'fixed' | 'generated';
 

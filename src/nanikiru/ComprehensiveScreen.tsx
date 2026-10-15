@@ -5,21 +5,21 @@ import { generateNanikiruProblem } from '../problems/generator';
 import type { GradedAnswer, Problem } from '../problems/types';
 import { AppBrand } from '../components/AppBrand';
 import { NANIKIRU_APP_NAME } from '../branding';
-
-const CHAPTER_ID = '3-1';
+import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, CHAPTER_THEORY_TAG } from './fixedProblems';
 
 const WIND_LABEL: Record<number, string> = { 27: '동', 28: '남', 29: '서', 30: '북' };
 
-function pickProblem(): Problem {
+function pickProblem(chapterId: string): Problem {
   return generateNanikiruProblem({
-    chapter: CHAPTER_ID,
-    theoryTag: ['comprehensive'],
+    chapter: chapterId,
+    theoryTag: CHAPTER_THEORY_TAG[chapterId] ?? ['comprehensive'],
     difficulty: 'realistic',
   });
 }
 
 export function ComprehensiveScreen() {
-  const [problem, setProblem] = useState<Problem>(() => pickProblem());
+  const [chapterId, setChapterId] = useState<string>(NANIKIRU_CHAPTERS[0]);
+  const [problem, setProblem] = useState<Problem>(() => pickProblem(NANIKIRU_CHAPTERS[0]));
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
 
   const selectedAnswer: GradedAnswer | undefined = useMemo(() => {
@@ -27,8 +27,14 @@ export function ComprehensiveScreen() {
     return problem.gradedAnswers?.find((a) => a.tile === selectedTile);
   }, [problem, selectedTile]);
 
+  const switchChapter = (nextChapterId: string) => {
+    setChapterId(nextChapterId);
+    setProblem(pickProblem(nextChapterId));
+    setSelectedTile(null);
+  };
+
   const handleNext = () => {
-    setProblem(pickProblem());
+    setProblem(pickProblem(chapterId));
     setSelectedTile(null);
   };
 
@@ -39,6 +45,14 @@ export function ComprehensiveScreen() {
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <h1>종합응용</h1>
       <p>순서·도라·자리바람까지 고려한 실전형 문제입니다.</p>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        {NANIKIRU_CHAPTERS.map((id) => (
+          <button key={id} type="button" onClick={() => switchChapter(id)} disabled={chapterId === id}>
+            {CHAPTER_LABELS[id] ?? id}
+          </button>
+        ))}
+      </div>
 
       {context && (
         <ul style={{ color: 'var(--text)', paddingLeft: 20 }}>
