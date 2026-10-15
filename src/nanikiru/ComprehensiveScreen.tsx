@@ -6,8 +6,13 @@ import type { GradedAnswer, Problem } from '../problems/types';
 import { AppBrand } from '../components/AppBrand';
 import { NANIKIRU_APP_NAME } from '../branding';
 import { NANIKIRU_CHAPTERS, CHAPTER_LABELS, CHAPTER_THEORY_TAG } from './fixedProblems';
+import { getAccessibleChapters } from '../progress/store';
 
 const WIND_LABEL: Record<number, string> = { 27: '동', 28: '남', 29: '서', 30: '북' };
+
+function pickRandomChapter(pool: string[]): string {
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function pickProblem(chapterId: string): Problem {
   return generateNanikiruProblem({
@@ -18,8 +23,8 @@ function pickProblem(chapterId: string): Problem {
 }
 
 export function ComprehensiveScreen() {
-  const [chapterId, setChapterId] = useState<string>(NANIKIRU_CHAPTERS[0]);
-  const [problem, setProblem] = useState<Problem>(() => pickProblem(NANIKIRU_CHAPTERS[0]));
+  const accessibleChapters = useMemo(() => getAccessibleChapters([...NANIKIRU_CHAPTERS]), []);
+  const [problem, setProblem] = useState<Problem>(() => pickProblem(pickRandomChapter(accessibleChapters)));
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
 
   const selectedAnswer: GradedAnswer | undefined = useMemo(() => {
@@ -27,14 +32,8 @@ export function ComprehensiveScreen() {
     return problem.gradedAnswers?.find((a) => a.tile === selectedTile);
   }, [problem, selectedTile]);
 
-  const switchChapter = (nextChapterId: string) => {
-    setChapterId(nextChapterId);
-    setProblem(pickProblem(nextChapterId));
-    setSelectedTile(null);
-  };
-
   const handleNext = () => {
-    setProblem(pickProblem(chapterId));
+    setProblem(pickProblem(pickRandomChapter(accessibleChapters)));
     setSelectedTile(null);
   };
 
@@ -44,15 +43,11 @@ export function ComprehensiveScreen() {
     <section style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
       <AppBrand>{NANIKIRU_APP_NAME}</AppBrand>
       <h1>종합응용</h1>
-      <p>순서·도라·자리바람까지 고려한 실전형 문제입니다.</p>
+      <p>지금까지 배운 챕터({accessibleChapters.map((id) => CHAPTER_LABELS[id] ?? id).join(', ')})를 섞어서 출제하는 실전형 문제입니다.</p>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-        {NANIKIRU_CHAPTERS.map((id) => (
-          <button key={id} type="button" onClick={() => switchChapter(id)} disabled={chapterId === id}>
-            {CHAPTER_LABELS[id] ?? id}
-          </button>
-        ))}
-      </div>
+      <p style={{ color: 'var(--text)', fontWeight: 700 }}>
+        이번 문제: {CHAPTER_LABELS[problem.chapter] ?? problem.chapter} 유형
+      </p>
 
       {context && (
         <ul style={{ color: 'var(--text)', paddingLeft: 20 }}>

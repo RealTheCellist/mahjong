@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createMemoryStore,
+  getAccessibleChapters,
   loadAllChapterProgress,
   loadChapterProgress,
   markUnitTestResult,
@@ -84,5 +85,28 @@ describe('progress store', () => {
     recordFixedProblemCleared('1-1', 3, store);
     resetChapterProgress('1-1', store);
     expect(loadChapterProgress('1-1', store)).toBeNull();
+  });
+
+  describe('getAccessibleChapters', () => {
+    it('아무 진행률이 없으면 첫 챕터만 접근 가능하다', () => {
+      const store = createMemoryStore();
+      expect(getAccessibleChapters(['1-1', '1-2', '2-1'], store)).toEqual(['1-1']);
+    });
+
+    it('이전 챕터가 다음 챕터를 열었으면 접근 가능 목록에 추가된다', () => {
+      const store = createMemoryStore();
+      recordFixedProblemCleared('1-1', 1, store);
+      markUnitTestResult('1-1', 1, true, store);
+      expect(getAccessibleChapters(['1-1', '1-2', '2-1'], store)).toEqual(['1-1', '1-2']);
+    });
+
+    it('중간 챕터가 안 열렸으면 그 뒤 챕터는 제외된다', () => {
+      const store = createMemoryStore();
+      recordFixedProblemCleared('1-1', 1, store);
+      markUnitTestResult('1-1', 1, true, store);
+      recordFixedProblemCleared('1-2', 1, store);
+      markUnitTestResult('1-2', 1, true, store);
+      expect(getAccessibleChapters(['1-1', '1-2', '2-1'], store)).toEqual(['1-1', '1-2', '2-1']);
+    });
   });
 });
